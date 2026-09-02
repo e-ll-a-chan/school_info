@@ -101,8 +101,15 @@ class LineNotifyRequest(BaseModel):
 
 def _render_ssr_html() -> str:
     index_path = os.path.join(STATIC_DIR, "index.html")
+    css_path = os.path.join(STATIC_DIR, "style.css")
+    js_path = os.path.join(STATIC_DIR, "app.js")
+    
     with open(index_path, "r", encoding="utf-8") as f:
         template = f.read()
+    with open(css_path, "r", encoding="utf-8") as f:
+        css_code = f.read()
+    with open(js_path, "r", encoding="utf-8") as f:
+        js_code = f.read()
     
     posts = db.get_all_posts()
     upcoming = db.get_upcoming_events()
@@ -230,17 +237,32 @@ def _render_ssr_html() -> str:
     rendered = rendered.replace('<div class="text-center py-6 text-stone-400 text-sm">予定を読み込み中...</div>', upcoming_html)
     rendered = rendered.replace('<!-- JSでレンダリング -->', posts_html)
 
-    # 4. window.__INITIAL_DATA__ 埋め込み
+    # 4. CSS を直接インライン埋め込み
+    css_tag = f'<style>\n{css_code}\n</style>'
+    # 既存のlink rel=stylesheetを置換
+    import re
+    rendered = re.sub(r'<link rel="stylesheet" href="/static/style\.css[^"]*">', css_tag, rendered)
+
+    # 5. window.__INITIAL_DATA__ と JavaScript を直接インライン埋め込み
     initial_json = json.dumps({"posts": posts, "upcoming": upcoming, "deadlines": deadlines, "settings": settings}, ensure_ascii=False)
-    injected_script = f'<script>window.__INITIAL_DATA__ = {initial_json};</script>'
-    rendered = rendered.replace('</body>', f'{injected_script}\n</body>')
+    injected_js = f'''
+<script>
+window.__INITIAL_DATA__ = {initial_json};
+{js_code}
+</script>
+'''
+    rendered = re.sub(r'<script src="/static/app\.js[^"]*"></script>', injected_js, rendered)
 
     return rendered
 
 @app.get("/")
 def get_index():
     rendered = _render_ssr_html()
-    return HTMLResponse(content=rendered, headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
+    return HTMLResponse(content=rendered, headers={
+        "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
+        "Pragma": "no-cache",
+        "Expires": "0"
+    })
 
 @app.post("/api/analyze")
 async def analyze_document(
