@@ -84,7 +84,28 @@
         </div>
         <div id="upcomingEventsList" class="space-y-2.5">
           <!-- 直近の予定リスト -->
-          <div class="text-center py-6 text-stone-400 text-sm">予定を読み込み中...</div>
+          
+            <div class="otayori-card p-3.5 flex items-center justify-between gap-3 cursor-pointer hover:border-sky-300 transition" onclick="openDetailModal('92d77224')">
+              <div class="flex items-center gap-3 min-w-0">
+                <div class="date-badge">
+                  <span class="day">07</span>
+                  <span class="month">9月</span>
+                </div>
+                <div class="min-w-0">
+                  <div class="flex items-center gap-1.5">
+                    <h4 class="font-extrabold text-xs text-stone-800 truncate">第 1 四半期、第 5 週のお知らせ（UOI評価タスク）</h4>
+                  </div>
+                  <div class="flex items-center gap-1 mt-1 text-[11px] text-stone-500">
+                    <span>⏰ 08:30〜</span>
+                    <span class="truncate">📍 学校 / 各教室 (School Campus)</span>
+                  </div>
+                  <div class="flex flex-wrap gap-1 mt-1.5">
+                    <span class="item-tag truncate max-w-[140px]">🎒 靴箱・シューズボックス</span><span class="item-tag truncate max-w-[140px]">🎒 装飾用ステッカー</span><span class="item-tag truncate max-w-[140px]">🎒 お子様の個人写真 1枚</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
         </div>
       </section>
 
@@ -110,7 +131,67 @@
 
         <!-- おたよりカードリスト -->
         <div id="postsList" class="space-y-3 mt-2">
-          <!-- JSでレンダリング -->
+          
+            <div class="otayori-card p-3.5 flex gap-3.5 cursor-pointer hover:border-amber-300 transition" onclick="openDetailModal('92d77224')">
+              <div class="w-16 h-20 rounded-xl bg-stone-100 border border-stone-200 overflow-hidden flex-shrink-0 flex items-center justify-center">
+                <img src="/uploads/25b555da-ad48-4e85-9ae7-cb138c556c13.png" class="w-full h-full object-cover" alt="プリント">
+              </div>
+              <div class="flex-1 min-w-0 flex flex-col justify-between">
+                <div>
+                  <div class="flex items-center gap-1.5 flex-wrap">
+                    <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-100 text-blue-800">📚 英語・UOI</span><span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-purple-100 text-purple-800">🎨 アート</span><span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 text-amber-800">⚠️ 提出物あり</span>
+                    <span class="text-[10px] text-stone-400 font-semibold ml-auto">📅 2026/09/07</span>
+                  </div>
+                  <h3 class="text-xs font-extrabold text-stone-900 mt-1 truncate leading-tight">第 1 四半期、第 5 週のお知らせ（UOI評価タスク）</h3>
+                  <p class="text-[10px] text-stone-400 truncate">Quarter 1, week 5 (Summative Assessment)</p>
+                </div>
+                <p class="text-[11px] text-stone-600 line-clamp-2 mt-1 leading-snug">【メッセージ本文】
+9月7日(月)にUOIの総括評価を実施します。自宅での作成は不可のため、材料（靴箱、ステッカー、写真、色紙）を持参してください。
+
+【添付プリント翻訳】
+靴箱を装飾した「My Identity スーツケース」を作成し、自分らしさについてのプレゼンテーションを行います。</p>
+                <div class="flex items-center justify-between mt-2 pt-1.5 border-t border-stone-100 text-[10px]">
+                  <div class="flex items-center gap-1.5 truncate max-w-[190px]">
+                    <span class="text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded font-bold">🎒 持ち物 5点</span>
+                    <span class="text-red-700 bg-red-50 px-1.5 py-0.5 rounded font-bold">⚠️ 締切: 2026/09/07</span>
+                  </div>
+                  <span class="text-emerald-700 font-bold flex items-center gap-0.5 flex-shrink-0">
+                    <span>詳細</span>
+                    <i data-lucide="chevron-right" class="w-3 h-3"></i>
+                  </span>
+                </div>
+              </div>
+            </div>
+            
+
+            <div class="otayori-card p-3.5 flex gap-3.5 cursor-pointer hover:border-amber-300 transition" onclick="openDetailModal('ded553f2')">
+              <div class="w-16 h-20 rounded-xl bg-stone-100 border border-stone-200 overflow-hidden flex-shrink-0 flex items-center justify-center">
+                <img src="/static/samples/no_image.svg" class="w-full h-full object-cover" alt="プリント">
+              </div>
+              <div class="flex-1 min-w-0 flex flex-col justify-between">
+                <div>
+                  <div class="flex items-center gap-1.5 flex-wrap">
+                    <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-red-100 text-red-800">🀄 中国語</span>
+                    <span class="text-[10px] text-stone-400 font-semibold ml-auto">📅 随時</span>
+                  </div>
+                  <h3 class="text-xs font-extrabold text-stone-900 mt-1 truncate leading-tight">P2 (フェーズ 2) 保護者の皆様へ（中国語レッスン・SA復習）</h3>
+                  <p class="text-[10px] text-stone-400 truncate">Dear P2 (Phase 2) Parents, (Mandarin SA Revision)</p>
+                </div>
+                <p class="text-[11px] text-stone-600 line-clamp-2 mt-1 leading-snug">P2 (フェーズ 2) の保護者の皆様、
+今週の中国語レッスンは無事に終了しました。来週もSAの評価を行いながらSAの改訂を進めていきます。ディクテーションの復習をご家庭でサポートしてください。</p>
+                <div class="flex items-center justify-between mt-2 pt-1.5 border-t border-stone-100 text-[10px]">
+                  <div class="flex items-center gap-1.5 truncate max-w-[190px]">
+                    
+                    
+                  </div>
+                  <span class="text-emerald-700 font-bold flex items-center gap-0.5 flex-shrink-0">
+                    <span>詳細</span>
+                    <i data-lucide="chevron-right" class="w-3 h-3"></i>
+                  </span>
+                </div>
+              </div>
+            </div>
+            
         </div>
       </section>
 
@@ -126,7 +207,7 @@
   <!-- ================= モーダル群 ================= -->
 
   <!-- 1. アップロード・撮影モーダル -->
-  <div id="uploadModal" class="hidden fixed inset-0 z-[9999] flex items-center justify-center p-4 modal-overlay animate-pop" onclick="if(event.target === this) closeModal('uploadModal')">
+  <div id="uploadModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay animate-pop">
     <div class="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
       <div class="flex items-center justify-between border-b pb-3 border-stone-100">
         <div class="flex items-center gap-2">
@@ -178,7 +259,7 @@
   </div>
 
   <!-- 2. AI読取・下書き確認＆編集エディタモーダル -->
-  <div id="draftModal" class="hidden fixed inset-0 z-[9999] flex items-center justify-center p-4 modal-overlay animate-pop" onclick="if(event.target === this) closeModal('draftModal')">
+  <div id="draftModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay animate-pop">
     <div class="bg-white w-full max-w-lg rounded-3xl p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto">
       
       <!-- ヘッダー -->
@@ -367,7 +448,7 @@
   </div>
 
   <!-- 3. おたより詳細モーダル -->
-  <div id="detailModal" class="hidden fixed inset-0 z-[9999] flex items-center justify-center p-4 modal-overlay animate-pop" onclick="if(event.target === this) closeModal('detailModal')">
+  <div id="detailModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay animate-pop">
     <div class="bg-white w-full max-w-lg rounded-3xl p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto">
       <div class="flex items-center justify-between border-b pb-3 border-stone-100">
         <div class="flex items-center gap-2 flex-wrap">
@@ -472,7 +553,7 @@
   </div>
 
   <!-- 4. LINE通知シミュレーター / 設定モーダル -->
-  <div id="lineModal" class="hidden fixed inset-0 z-[9999] flex items-center justify-center p-4 modal-overlay animate-pop" onclick="if(event.target === this) closeModal('lineModal')">
+  <div id="lineModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay animate-pop">
     <div class="bg-white w-full max-w-sm rounded-3xl p-5 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
       <div class="flex items-center justify-between border-b pb-2 border-stone-100">
         <div class="flex items-center gap-2">
@@ -517,7 +598,7 @@
   </div>
 
   <!-- 5. 設定モーダル（Gemini APIキー・ユーザー名） -->
-  <div id="settingsModal" class="hidden fixed inset-0 z-[9999] flex items-center justify-center p-4 modal-overlay animate-pop" onclick="if(event.target === this) closeModal('settingsModal')">
+  <div id="settingsModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay animate-pop">
     <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl space-y-4">
       <div class="flex items-center justify-between border-b pb-3 border-stone-100">
         <h3 class="font-extrabold text-stone-800 text-base">設定</h3>
@@ -551,6 +632,7 @@
   </div>
 
   <!-- JavaScript ロジック (キャッシュバスター付き) -->
-  <script src="/static/app.js?v=20260902_1409"></script>
+  <script src="/static/app.js?v=20260902_1405"></script>
+<script>window.__INITIAL_DATA__ = {"posts": [{"id": "92d77224", "title": "第 1 四半期、第 5 週のお知らせ（UOI評価タスク）", "title_en": "Quarter 1, week 5 (Summative Assessment)", "date": "2026-09-07", "time_start": "08:30", "time_end": "15:00", "location": "学校 / 各教室 (School Campus)", "target_child": "全校生徒・児童", "items": ["靴箱・シューズボックス (Shoe Box)", "装飾用ステッカー", "お子様の個人写真 1枚", "活動用写真", "色紙"], "items_en": ["Medium-sized shoe box", "Stickers for decoration", "One personal photo", "Other pictures", "Coloured paper"], "deadline": "2026-09-07", "deadline_description": "評価タスクの持ち物持参", "is_submitted": false, "text_translation": "第 1 四半期、第 5 週\n2026 年 9 月 1 日\n📚 **総括評価 – 第 6 週 (来週)**\n\n親愛なる保護者の皆様\n\n**UOI の総評価**は来週 **2026 年 9 月 7 日月曜日**に行われ、**学生のプレゼンテーションは 2026 年 9 月 8 日火曜日**に行われます。\n\n参考までに査定明細を添付させていただきました。\n\n⚠️ **重要:** 学生は **自宅で評価タスクを完了することはできません**。この課題は **学校内で独立して**完了する必要があります。\n\n以下のものを準備して学校までお送りください。\n📦 1. 中型シューズボックス（大人サイズでも可）\n⭐ 2. 装飾用ステッカー\n📸 3. お子様の個人写真 1枚\n🖼️ 4. お子様がアクティビティに使用したいその他の写真\n🎨 5. お子様の好みに応じて、アクティビティ用の色紙\n\n**9 月 7 日月曜日**に、すべての教材が必ず学校に届けられるようにしてください。\n\nご協力とご支援をよろしくお願いいたします。 🙏\n\nよろしくお願いします。\nサンティさん\nP2 ホームルーム", "text_raw": "Quarter 1, week 5\n1st September 2026\n📚 **SUMMATIVE ASSESSMENT – WEEK 6 (NEXT WEEK)**\n\nDear Parents,\n\nThe **Summative Assessment for UOI** will take place next week on **Monday, 7 September 2026**, and the **student presentations will take place on Tuesday, 8 September 2026**.\n\nI have attached the assessment details for your reference.\n\n⚠️ **Important:** Students are **not allowed to complete the assessment task at home**. The task must be completed **independently in school**.\n\nKindly prepare and send the following items to school:\n📦 1. Medium-sized shoe box\n⭐ 2. Stickers for decoration\n📸 3. One personal photo of your child\n🖼️ 4. Other pictures that your child would like to use for the activity\n🎨 5. Some coloured paper for the activity\n\nPlease ensure that all the materials are brought to school on **Monday, 7 September**.\n\nRegards,\nMs Santhi\nP2 Homeroom", "image_url": "/uploads/25b555da-ad48-4e85-9ae7-cb138c556c13.png", "image_translation": "評価タスクの設計\n\n【目標】\nあなたの目標は、あなたの経験、選択、責任がどのようにアイデンティティやユニークな価値観を形作っているかを示すことです。\n\n【役割】\nあなたはアイデンティティ・エクスプローラー（探求者）です。\n\n【聴衆】\nクラスメートと先生\n\n【状況・背景】\n装飾された靴箱を使用して「My Identity スーツケース」を作成し、自分らしさを表現するプレゼンテーションを行います。", "image_raw": "Assessment Task Design\nGoal: Your goal is to show how your experiences, choices, responsibilities, values and unique characteristics have shaped who you are.\nRole: You are an Identity Explorer.\nAudience: Your audience will be your classmates and teacher.\nSituation/Context: You have been asked to create an Identity Suitcase using a decorated shoebox.\nProduct: My Identity Suitcase using a decorated shoebox.\nPerformance: My Identity Suitcase Presentation", "summary": "【メッセージ本文】\n9月7日(月)にUOIの総括評価を実施します。自宅での作成は不可のため、材料（靴箱、ステッカー、写真、色紙）を持参してください。\n\n【添付プリント翻訳】\n靴箱を装飾した「My Identity スーツケース」を作成し、自分らしさについてのプレゼンテーションを行います。", "summary_en": "Quarter 1, week 5 Summative Assessment", "source_text": "Quarter 1, week 5", "source_date_raw": "2026-09-15", "tags": ["英語・UOI", "アート", "提出物あり"], "created_at": "2026-09-02T12:42:08.364557", "updated_at": "2026-09-02T13:45:00.000000"}, {"id": "ded553f2", "title": "P2 (フェーズ 2) 保護者の皆様へ（中国語レッスン・SA復習）", "title_en": "Dear P2 (Phase 2) Parents, (Mandarin SA Revision)", "date": null, "time_start": null, "time_end": null, "location": "学校 / 各教室 (School Campus)", "target_child": "全校生徒・児童", "items": [], "items_en": [], "deadline": null, "deadline_description": "", "is_submitted": false, "text_translation": "P2 (フェーズ 2) の保護者の皆様、\n\n今週の中国語レッスンは無事に終了しました。今週は、「私の理想の職業」の実践と SA (Summative Assessment) の復習に重点を置きました。生徒たちは読書活動に積極的に参加し、授業全体を通して良好な取り組みを示しました。\n\n🌟 フレンドリーなリマインダー\n来週もSAの評価を行いながらSAの改訂を進めていきます。保護者の方には、ご家庭でのお子様のSAの準備をサポートしていただきますようお願いいたします。\nSA 改訂の主な焦点は、毎週のディクテーションでカバーされる内容です。語彙、ピンイン、漢字を復習できるよう手伝ってください。\n\n中国語教師\nジェシーさん (フェーズ 2)", "text_raw": "Dear P2 (Phase 2) Parents,\n\nOur Mandarin lessons for this week have been completed successfully.", "image_url": null, "image_translation": "", "image_raw": "", "summary": "P2 (フェーズ 2) の保護者の皆様、\n今週の中国語レッスンは無事に終了しました。来週もSAの評価を行いながらSAの改訂を進めていきます。ディクテーションの復習をご家庭でサポートしてください。", "summary_en": "Dear P2 (Phase 2) Parents, Mandarin lessons revision", "source_text": "Dear P2 (Phase 2) Parents,", "source_date_raw": "2026-09-15", "tags": ["中国語"], "created_at": "2026-09-02T12:50:16.445922"}], "upcoming": [{"id": "92d77224", "title": "第 1 四半期、第 5 週のお知らせ（UOI評価タスク）", "title_en": "Quarter 1, week 5 (Summative Assessment)", "date": "2026-09-07", "time_start": "08:30", "time_end": "15:00", "location": "学校 / 各教室 (School Campus)", "target_child": "全校生徒・児童", "items": ["靴箱・シューズボックス (Shoe Box)", "装飾用ステッカー", "お子様の個人写真 1枚", "活動用写真", "色紙"], "items_en": ["Medium-sized shoe box", "Stickers for decoration", "One personal photo", "Other pictures", "Coloured paper"], "deadline": "2026-09-07", "deadline_description": "評価タスクの持ち物持参", "is_submitted": false, "text_translation": "第 1 四半期、第 5 週\n2026 年 9 月 1 日\n📚 **総括評価 – 第 6 週 (来週)**\n\n親愛なる保護者の皆様\n\n**UOI の総評価**は来週 **2026 年 9 月 7 日月曜日**に行われ、**学生のプレゼンテーションは 2026 年 9 月 8 日火曜日**に行われます。\n\n参考までに査定明細を添付させていただきました。\n\n⚠️ **重要:** 学生は **自宅で評価タスクを完了することはできません**。この課題は **学校内で独立して**完了する必要があります。\n\n以下のものを準備して学校までお送りください。\n📦 1. 中型シューズボックス（大人サイズでも可）\n⭐ 2. 装飾用ステッカー\n📸 3. お子様の個人写真 1枚\n🖼️ 4. お子様がアクティビティに使用したいその他の写真\n🎨 5. お子様の好みに応じて、アクティビティ用の色紙\n\n**9 月 7 日月曜日**に、すべての教材が必ず学校に届けられるようにしてください。\n\nご協力とご支援をよろしくお願いいたします。 🙏\n\nよろしくお願いします。\nサンティさん\nP2 ホームルーム", "text_raw": "Quarter 1, week 5\n1st September 2026\n📚 **SUMMATIVE ASSESSMENT – WEEK 6 (NEXT WEEK)**\n\nDear Parents,\n\nThe **Summative Assessment for UOI** will take place next week on **Monday, 7 September 2026**, and the **student presentations will take place on Tuesday, 8 September 2026**.\n\nI have attached the assessment details for your reference.\n\n⚠️ **Important:** Students are **not allowed to complete the assessment task at home**. The task must be completed **independently in school**.\n\nKindly prepare and send the following items to school:\n📦 1. Medium-sized shoe box\n⭐ 2. Stickers for decoration\n📸 3. One personal photo of your child\n🖼️ 4. Other pictures that your child would like to use for the activity\n🎨 5. Some coloured paper for the activity\n\nPlease ensure that all the materials are brought to school on **Monday, 7 September**.\n\nRegards,\nMs Santhi\nP2 Homeroom", "image_url": "/uploads/25b555da-ad48-4e85-9ae7-cb138c556c13.png", "image_translation": "評価タスクの設計\n\n【目標】\nあなたの目標は、あなたの経験、選択、責任がどのようにアイデンティティやユニークな価値観を形作っているかを示すことです。\n\n【役割】\nあなたはアイデンティティ・エクスプローラー（探求者）です。\n\n【聴衆】\nクラスメートと先生\n\n【状況・背景】\n装飾された靴箱を使用して「My Identity スーツケース」を作成し、自分らしさを表現するプレゼンテーションを行います。", "image_raw": "Assessment Task Design\nGoal: Your goal is to show how your experiences, choices, responsibilities, values and unique characteristics have shaped who you are.\nRole: You are an Identity Explorer.\nAudience: Your audience will be your classmates and teacher.\nSituation/Context: You have been asked to create an Identity Suitcase using a decorated shoebox.\nProduct: My Identity Suitcase using a decorated shoebox.\nPerformance: My Identity Suitcase Presentation", "summary": "【メッセージ本文】\n9月7日(月)にUOIの総括評価を実施します。自宅での作成は不可のため、材料（靴箱、ステッカー、写真、色紙）を持参してください。\n\n【添付プリント翻訳】\n靴箱を装飾した「My Identity スーツケース」を作成し、自分らしさについてのプレゼンテーションを行います。", "summary_en": "Quarter 1, week 5 Summative Assessment", "source_text": "Quarter 1, week 5", "source_date_raw": "2026-09-15", "tags": ["英語・UOI", "アート", "提出物あり"], "created_at": "2026-09-02T12:42:08.364557", "updated_at": "2026-09-02T13:45:00.000000"}], "deadlines": [{"id": "92d77224", "title": "第 1 四半期、第 5 週のお知らせ（UOI評価タスク）", "title_en": "Quarter 1, week 5 (Summative Assessment)", "date": "2026-09-07", "time_start": "08:30", "time_end": "15:00", "location": "学校 / 各教室 (School Campus)", "target_child": "全校生徒・児童", "items": ["靴箱・シューズボックス (Shoe Box)", "装飾用ステッカー", "お子様の個人写真 1枚", "活動用写真", "色紙"], "items_en": ["Medium-sized shoe box", "Stickers for decoration", "One personal photo", "Other pictures", "Coloured paper"], "deadline": "2026-09-07", "deadline_description": "評価タスクの持ち物持参", "is_submitted": false, "text_translation": "第 1 四半期、第 5 週\n2026 年 9 月 1 日\n📚 **総括評価 – 第 6 週 (来週)**\n\n親愛なる保護者の皆様\n\n**UOI の総評価**は来週 **2026 年 9 月 7 日月曜日**に行われ、**学生のプレゼンテーションは 2026 年 9 月 8 日火曜日**に行われます。\n\n参考までに査定明細を添付させていただきました。\n\n⚠️ **重要:** 学生は **自宅で評価タスクを完了することはできません**。この課題は **学校内で独立して**完了する必要があります。\n\n以下のものを準備して学校までお送りください。\n📦 1. 中型シューズボックス（大人サイズでも可）\n⭐ 2. 装飾用ステッカー\n📸 3. お子様の個人写真 1枚\n🖼️ 4. お子様がアクティビティに使用したいその他の写真\n🎨 5. お子様の好みに応じて、アクティビティ用の色紙\n\n**9 月 7 日月曜日**に、すべての教材が必ず学校に届けられるようにしてください。\n\nご協力とご支援をよろしくお願いいたします。 🙏\n\nよろしくお願いします。\nサンティさん\nP2 ホームルーム", "text_raw": "Quarter 1, week 5\n1st September 2026\n📚 **SUMMATIVE ASSESSMENT – WEEK 6 (NEXT WEEK)**\n\nDear Parents,\n\nThe **Summative Assessment for UOI** will take place next week on **Monday, 7 September 2026**, and the **student presentations will take place on Tuesday, 8 September 2026**.\n\nI have attached the assessment details for your reference.\n\n⚠️ **Important:** Students are **not allowed to complete the assessment task at home**. The task must be completed **independently in school**.\n\nKindly prepare and send the following items to school:\n📦 1. Medium-sized shoe box\n⭐ 2. Stickers for decoration\n📸 3. One personal photo of your child\n🖼️ 4. Other pictures that your child would like to use for the activity\n🎨 5. Some coloured paper for the activity\n\nPlease ensure that all the materials are brought to school on **Monday, 7 September**.\n\nRegards,\nMs Santhi\nP2 Homeroom", "image_url": "/uploads/25b555da-ad48-4e85-9ae7-cb138c556c13.png", "image_translation": "評価タスクの設計\n\n【目標】\nあなたの目標は、あなたの経験、選択、責任がどのようにアイデンティティやユニークな価値観を形作っているかを示すことです。\n\n【役割】\nあなたはアイデンティティ・エクスプローラー（探求者）です。\n\n【聴衆】\nクラスメートと先生\n\n【状況・背景】\n装飾された靴箱を使用して「My Identity スーツケース」を作成し、自分らしさを表現するプレゼンテーションを行います。", "image_raw": "Assessment Task Design\nGoal: Your goal is to show how your experiences, choices, responsibilities, values and unique characteristics have shaped who you are.\nRole: You are an Identity Explorer.\nAudience: Your audience will be your classmates and teacher.\nSituation/Context: You have been asked to create an Identity Suitcase using a decorated shoebox.\nProduct: My Identity Suitcase using a decorated shoebox.\nPerformance: My Identity Suitcase Presentation", "summary": "【メッセージ本文】\n9月7日(月)にUOIの総括評価を実施します。自宅での作成は不可のため、材料（靴箱、ステッカー、写真、色紙）を持参してください。\n\n【添付プリント翻訳】\n靴箱を装飾した「My Identity スーツケース」を作成し、自分らしさについてのプレゼンテーションを行います。", "summary_en": "Quarter 1, week 5 Summative Assessment", "source_text": "Quarter 1, week 5", "source_date_raw": "2026-09-15", "tags": ["英語・UOI", "アート", "提出物あり"], "created_at": "2026-09-02T12:42:08.364557", "updated_at": "2026-09-02T13:45:00.000000"}], "settings": {"user_name": "めぐ", "gemini_api_key": "", "line_notify_token": "", "notification_time": "18:00"}};</script>
 </body>
 </html>

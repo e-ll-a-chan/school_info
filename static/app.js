@@ -1130,7 +1130,11 @@ function openModal(id) {
   const modal = document.getElementById(id);
   if (modal) {
     modal.classList.remove('hidden');
-    if (window.lucide) lucide.createIcons();
+    modal.style.display = 'flex';
+    modal.style.zIndex = '999';
+    if (window.lucide) {
+      try { lucide.createIcons(); } catch (e) {}
+    }
   }
 }
 
@@ -1138,6 +1142,7 @@ function closeModal(id) {
   const modal = document.getElementById(id);
   if (modal) {
     modal.classList.add('hidden');
+    modal.style.display = 'none';
   }
 }
 
