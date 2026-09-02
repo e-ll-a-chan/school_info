@@ -3,6 +3,7 @@ import uuid
 import shutil
 import json
 import html
+import urllib.parse
 from datetime import datetime, date
 from typing import Optional, List
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Query, Response
@@ -102,6 +103,225 @@ class LineNotifyRequest(BaseModel):
 @app.get("/")
 def get_index():
     return FileResponse(os.path.join(STATIC_DIR, "index.html"), headers={
+        "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
+        "Pragma": "no-cache",
+        "Expires": "0"
+    })
+
+@app.get("/post/{post_id}")
+def get_post_detail_page(post_id: str):
+    post = db.get_post_by_id(post_id)
+    if not post:
+        posts = db.get_all_posts()
+        post = next((p for p in posts if str(p.get("id")) == str(post_id)), None)
+    
+    if not post:
+        raise HTTPException(status_code=404, detail="おたよりが見つかりませんでした")
+
+    title = html.escape(str(post.get("title", "お知らせ")))
+    title_en = html.escape(str(post.get("title_en", "")))
+    date_val = post.get("date", "")
+    date_display = f"📅 {date_val.replace('-', '/')}" if date_val else "📅 随時"
+    time_start = post.get("time_start", "")
+    time_end = post.get("time_end", "")
+    time_display = f"{time_start} 〜 {time_end}" if (time_start and time_end) else (time_start or "終日")
+    location = html.escape(str(post.get("location", "学校")))
+    deadline = post.get("deadline", "")
+    deadline_desc = html.escape(str(post.get("deadline_description", "提出締切")))
+
+    tags_badges = []
+    for t in post.get("tags", []):
+        t_esc = html.escape(str(t))
+        c = "bg-stone-100 text-stone-700"
+        if "英語" in t or "UOI" in t: c = "bg-blue-100 text-blue-800"
+        elif "中国語" in t: c = "bg-red-100 text-red-800"
+        elif "アート" in t: c = "bg-purple-100 text-purple-800"
+        elif "Music" in t: c = "bg-pink-100 text-pink-800"
+        elif "行事" in t: c = "bg-emerald-100 text-emerald-800"
+        elif "提出物" in t: c = "bg-amber-100 text-amber-800"
+        tags_badges.append(f'<span class="px-2.5 py-1 rounded-full text-xs font-bold {c}">{t_esc}</span>')
+    tags_html = "".join(tags_badges)
+
+    items = post.get("items", [])
+    items_html = ""
+    if items:
+        tags = "".join([f'<span class="px-3 py-1 bg-amber-50 text-amber-800 border border-amber-200/80 rounded-xl text-xs font-bold">🎒 {html.escape(str(it))}</span>' for it in items])
+        items_html = f'''
+        <div class="p-4 rounded-2xl bg-amber-50/40 border border-amber-200/60 space-y-2">
+          <h4 class="text-xs font-extrabold text-amber-900 flex items-center gap-1.5">
+            <span>🎒 持ち物・準備するもの</span>
+          </h4>
+          <div class="flex flex-wrap gap-2 pt-1">{tags}</div>
+        </div>
+        '''
+
+    # 日時・場所カード
+    datetime_html = ""
+    if date_val or time_start or location != "学校" or deadline:
+        dl_row = f'''
+        <div class="flex items-center justify-between text-red-600 font-bold border-t border-red-100 pt-2 text-xs">
+          <span>⚠️ 提出締切:</span>
+          <span>{deadline.replace('-', '/')} ({deadline_desc})</span>
+        </div>
+        ''' if deadline else ""
+
+        datetime_html = f'''
+        <div class="p-4 rounded-2xl bg-stone-50 border border-stone-200/80 space-y-2.5 text-xs">
+          <div class="flex items-center justify-between">
+            <span class="text-stone-500">📅 日程:</span>
+            <span class="font-bold text-stone-800">{date_display}</span>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-stone-500">⏰ 時間:</span>
+            <span class="font-bold text-stone-800">{time_display}</span>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-stone-500">📍 場所:</span>
+            <span class="font-bold text-stone-800">{location}</span>
+          </div>
+          {dl_row}
+        </div>
+        '''
+
+    # ① 📱 メッセージ・メール本文カード
+    text_trans = post.get("text_translation") or (post.get("summary") if not post.get("image_translation") else "")
+    text_raw = post.get("text_raw") or (post.get("source_text") if not post.get("image_raw") else "")
+    text_card_html = ""
+    if text_trans or text_raw:
+        text_card_html = f'''
+        <div class="p-4 rounded-2xl bg-amber-50/50 border border-amber-200/80 space-y-3">
+          <h4 class="text-xs font-bold text-amber-900 flex items-center gap-1.5">
+            <span>📱 メッセージ・メール本文の翻訳</span>
+          </h4>
+          <div class="text-xs leading-relaxed text-stone-800 bg-white p-3.5 rounded-xl border border-amber-200/50 whitespace-pre-wrap">{html.escape(str(text_trans or "本文翻訳なし"))}</div>
+          {f"""<details class="text-xs pt-1">
+            <summary class="font-bold text-amber-700 cursor-pointer hover:text-amber-950">🇺🇸 英語の原文テキストを表示</summary>
+            <div class="mt-2 p-3 rounded-xl bg-white border border-stone-200 text-stone-600 text-[11px] font-mono whitespace-pre-wrap leading-relaxed">{html.escape(str(text_raw))}</div>
+          </details>""" if text_raw else ""}
+        </div>
+        '''
+
+    # ② 🖼️ 添付プリント写真 ＆ 画像内の翻訳カード
+    img_url = post.get("image_url")
+    img_trans = post.get("image_translation", "")
+    img_raw = post.get("image_raw", "")
+    image_card_html = ""
+    if img_url or img_trans or img_raw:
+        img_el = f'''
+        <div class="w-full rounded-xl bg-white overflow-hidden border border-sky-200 flex items-center justify-center p-2">
+          <img src="{img_url}" class="max-h-72 w-auto object-contain rounded-lg shadow-sm" alt="プリント">
+        </div>
+        ''' if img_url else ""
+
+        trans_el = f'''
+        <div class="text-xs leading-relaxed text-stone-800 bg-white p-3.5 rounded-xl border border-sky-200/50 whitespace-pre-wrap">{html.escape(str(img_trans))}</div>
+        ''' if img_trans else ""
+
+        raw_el = f'''
+        <details class="text-xs pt-1">
+          <summary class="font-bold text-sky-700 cursor-pointer hover:text-sky-950">🇺🇸 画像から読み取った英語原文 (OCR)</summary>
+          <div class="mt-2 p-3 rounded-xl bg-white border border-stone-200 text-stone-600 text-[11px] font-mono whitespace-pre-wrap leading-relaxed">{html.escape(str(img_raw))}</div>
+        </details>
+        ''' if img_raw else ""
+
+        image_card_html = f'''
+        <div class="p-4 rounded-2xl bg-sky-50/50 border border-sky-200/80 space-y-3">
+          <h4 class="text-xs font-bold text-sky-900 flex items-center gap-1.5">
+            <span>🖼️ 添付プリント写真 ＆ 画像内の翻訳</span>
+          </h4>
+          {img_el}
+          {trans_el}
+          {raw_el}
+        </div>
+        '''
+
+    # LINE共有文生成
+    share_text = f"【おたより】{title}\n\n"
+    if text_trans: share_text += f"📱 メッセージ:\n{text_trans}\n\n"
+    if img_trans: share_text += f"🖼️ 添付プリント:\n{img_trans}\n\n"
+    if items: share_text += f"🎒 持ち物: {', '.join(items)}\n"
+    line_url = f"https://line.me/R/msg/text/?{urllib.parse.quote(share_text)}"
+
+    # GoogleカレンダーURL生成
+    cal_title = urllib.parse.quote(title)
+    cal_loc = urllib.parse.quote(location)
+    cal_desc = urllib.parse.quote(f"{title_en}\n\n{text_trans or img_trans}\n\n持ち物: {', '.join(items)}")
+    d_clean = date_val.replace("-", "") if date_val else "20260907"
+    cal_dates = f"{d_clean}/{d_clean}"
+    google_cal_url = f"https://calendar.google.com/calendar/render?action=TEMPLATE&text={cal_title}&dates={cal_dates}&details={cal_desc}&location={cal_loc}"
+
+    rendered = f'''<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>{title} - School Info</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/static/style.css?v=20260902_1435">
+</head>
+<body class="bg-stone-100 min-h-screen text-stone-800 antialiased flex justify-center py-0 sm:py-6">
+  <div class="w-full max-w-lg bg-white min-h-screen sm:min-h-0 sm:rounded-3xl shadow-xl flex flex-col overflow-hidden">
+    
+    <!-- ヘッダー -->
+    <header class="px-4 py-3.5 bg-white border-b border-stone-200/80 flex items-center justify-between sticky top-0 z-30 shadow-sm">
+      <a href="/" class="flex items-center gap-1.5 text-xs font-bold text-stone-600 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 px-3 py-1.5 rounded-full transition">
+        <span>← 一覧に戻る</span>
+      </a>
+      <div class="flex items-center gap-1.5">
+        <a href="{line_url}" target="_blank" class="px-3 py-1.5 rounded-full bg-[#06C755] text-white font-bold text-xs shadow-sm flex items-center gap-1">
+          <span>LINE共有</span>
+        </a>
+      </div>
+    </header>
+
+    <!-- コンテンツ -->
+    <main class="p-5 space-y-4 flex-1">
+      
+      <!-- タイトル ＆ タグ -->
+      <div class="space-y-2">
+        <div class="flex flex-wrap gap-1.5 items-center">
+          {tags_html}
+          <span class="text-xs text-stone-400 font-semibold ml-auto">{date_display}</span>
+        </div>
+        <h1 class="text-xl font-black text-stone-900 leading-snug">{title}</h1>
+        {f'<p class="text-xs text-stone-500 font-medium">{title_en}</p>' if title_en else ''}
+      </div>
+
+      <!-- 日時・場所 -->
+      {datetime_html}
+
+      <!-- 持ち物 -->
+      {items_html}
+
+      <!-- ① 📱 メッセージ・メール本文 -->
+      {text_card_html}
+
+      <!-- ② 🖼️ 添付プリント写真 ＆ 画像翻訳 -->
+      {image_card_html}
+
+      <!-- アクションボタン -->
+      <div class="pt-3 grid grid-cols-2 gap-2.5">
+        <a href="{google_cal_url}" target="_blank" class="py-3 px-3 rounded-2xl bg-sky-50 text-sky-700 hover:bg-sky-100 border border-sky-200 font-bold text-xs flex items-center justify-center gap-1.5 transition text-center shadow-sm">
+          <span>📅 Googleカレンダーに追加</span>
+        </a>
+        <a href="{line_url}" target="_blank" class="py-3 px-3 rounded-2xl bg-[#06C755] text-white hover:bg-[#05b34c] font-bold text-xs flex items-center justify-center gap-1.5 transition text-center shadow-sm">
+          <span>📲 LINEで家族に共有</span>
+        </a>
+      </div>
+
+      <!-- 戻るボタン -->
+      <div class="text-center pt-4 pb-6">
+        <a href="/" class="inline-block text-xs font-bold text-stone-500 hover:text-stone-800 bg-stone-100 px-5 py-2.5 rounded-2xl transition">
+          ← おたより一覧に戻る
+        </a>
+      </div>
+
+    </main>
+  </div>
+</body>
+</html>
+'''
+    return HTMLResponse(content=rendered, headers={
         "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
         "Pragma": "no-cache",
         "Expires": "0"

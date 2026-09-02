@@ -148,7 +148,7 @@ function renderUpcoming(events) {
     const timeRange = ev.time_start ? `${ev.time_start}〜` : '';
 
     return `
-      <div class="otayori-card p-3.5 flex items-center justify-between gap-3 cursor-pointer hover:border-sky-300 transition" onclick="openDetailModal('${ev.id}')">
+      <a href="/post/${ev.id}" class="otayori-card block p-3.5 flex items-center justify-between gap-3 hover:border-sky-300 transition no-underline">
         <div class="flex items-center gap-3 min-w-0">
           <div class="date-badge">
             <span class="day">${day}</span>
@@ -169,11 +169,12 @@ function renderUpcoming(events) {
           </div>
         </div>
         <div class="flex flex-col items-end gap-1 flex-shrink-0">
-          <a href="${buildGoogleCalendarUrl(ev)}" target="_blank" onclick="event.stopPropagation()" class="p-2 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-600 transition" title="Googleカレンダーに追加">
-            <i data-lucide="calendar-plus" class="w-4 h-4"></i>
-          </a>
+          <span class="text-emerald-700 font-bold text-xs flex items-center gap-0.5">
+            <span>詳細</span>
+            <span>›</span>
+          </span>
         </div>
-      </div>
+      </a>
     `;
   }).join('');
 
@@ -259,7 +260,7 @@ function renderPosts(posts) {
       : '';
 
     return `
-      <div class="otayori-card p-3.5 flex gap-3.5 cursor-pointer hover:border-amber-300 transition" onclick="openDetailModal('${p.id}')">
+      <a href="/post/${p.id}" class="otayori-card block p-3.5 flex gap-3.5 hover:border-amber-300 transition no-underline">
         <!-- サムネイル画像 -->
         <div class="w-16 h-20 rounded-xl bg-stone-100 border border-stone-200 overflow-hidden flex-shrink-0 flex items-center justify-center">
           <img src="${previewImg}" class="w-full h-full object-cover" alt="プリント">
@@ -287,11 +288,11 @@ function renderPosts(posts) {
             </div>
             <span class="text-emerald-700 font-bold flex items-center gap-0.5 flex-shrink-0">
               <span>詳細</span>
-              <i data-lucide="chevron-right" class="w-3 h-3"></i>
+              <span class="text-xs">›</span>
             </span>
           </div>
         </div>
-      </div>
+      </a>
     `;
   }).join('');
 
@@ -767,144 +768,11 @@ function editCurrentPost() {
   openDraftModal(activePostDetail, true);
 }
 
-async function openDetailModal(postId) {
-  try {
-    console.log('openDetailModal called for:', postId);
-    let post = null;
-    if (window.__INITIAL_DATA__ && window.__INITIAL_DATA__.posts) {
-      post = window.__INITIAL_DATA__.posts.find(p => String(p.id) === String(postId));
-    }
-    if (!post && currentPosts && currentPosts.length > 0) {
-      post = currentPosts.find(p => String(p.id) === String(postId));
-    }
-    if (!post) {
-      try {
-        const res = await fetch(`/api/posts/${postId}`);
-        if (res.ok) post = await res.json();
-      } catch (e) {
-        console.warn('fetch post error:', e);
-      }
-    }
-    if (!post) {
-      // 最初の投稿をフォールバックとして使用
-      if (currentPosts && currentPosts.length > 0) post = currentPosts[0];
-      else if (window.__INITIAL_DATA__ && window.__INITIAL_DATA__.posts && window.__INITIAL_DATA__.posts.length > 0) post = window.__INITIAL_DATA__.posts[0];
-    }
-    if (!post) {
-      alert('おたよりデータが見つかりませんでした');
-      return;
-    }
-
-    activePostDetail = post;
-
-    const titleEl = document.getElementById('detailTitle');
-    if (titleEl) titleEl.innerText = post.title || 'お知らせ';
-    
-    const titleEnEl = document.getElementById('detailTitleEn');
-    if (titleEnEl) titleEnEl.innerText = post.title_en || '';
-
-    const dateDisplayEl = document.getElementById('detailDateDisplay');
-    if (dateDisplayEl) dateDisplayEl.innerText = post.date ? `${post.date.replace(/-/g, '/')}` : '';
-    
-    // タグバッジ群
-    const badgesContainer = document.getElementById('detailBadgesContainer');
-    if (badgesContainer) {
-      badgesContainer.innerHTML = (post.tags || []).map(t => {
-        let colorClass = 'bg-stone-100 text-stone-700';
-        if (t.includes('英語') || t.includes('UOI')) colorClass = 'bg-blue-100 text-blue-800';
-        else if (t.includes('中国語')) colorClass = 'bg-red-100 text-red-800';
-        else if (t.includes('アート')) colorClass = 'bg-purple-100 text-purple-800';
-        else if (t.includes('Music')) colorClass = 'bg-pink-100 text-pink-800';
-        else if (t.includes('学校行事') || t.includes('行事')) colorClass = 'bg-emerald-100 text-emerald-800';
-        else if (t.includes('提出物')) colorClass = 'bg-amber-100 text-amber-800';
-        return `<span class="px-2 py-0.5 rounded-full text-xs font-bold ${colorClass}">${escapeHtml(t)}</span>`;
-      }).join('');
-    }
-
-    // 日時・場所カード
-    const dateTimeCard = document.getElementById('detailDateTimeCard');
-    const hasDateTime = Boolean(post.date || post.time_start || post.location || post.deadline);
-    if (dateTimeCard) {
-      if (hasDateTime) {
-        dateTimeCard.classList.remove('hidden');
-        const timeStr = (post.time_start && post.time_end) ? `${post.time_start} 〜 ${post.time_end}` : (post.time_start || '終日');
-        const dtTime = document.getElementById('detailTime');
-        if (dtTime) dtTime.innerText = timeStr;
-
-        const dtLoc = document.getElementById('detailLocation');
-        if (dtLoc) dtLoc.innerText = post.location || '学校';
-
-        const deadlineRow = document.getElementById('detailDeadlineRow');
-        const dtDeadline = document.getElementById('detailDeadline');
-        if (deadlineRow && dtDeadline) {
-          if (post.deadline) {
-            dtDeadline.innerText = `${post.deadline.replace(/-/g, '/')} (${post.deadline_description || '提出'})`;
-            deadlineRow.classList.remove('hidden');
-          } else {
-            deadlineRow.classList.add('hidden');
-          }
-        }
-      } else {
-        dateTimeCard.classList.add('hidden');
-      }
-    }
-
-    // 持ち物（ある場合のみ表示）
-    const itemsSection = document.getElementById('detailItemsSection');
-    const itemsContainer = document.getElementById('detailItems');
-    if (itemsSection && itemsContainer) {
-      if ((post.items || []).length > 0) {
-        itemsSection.classList.remove('hidden');
-        itemsContainer.innerHTML = post.items.map(item => `
-          <span class="item-tag text-xs px-2.5 py-1">🎒 ${escapeHtml(item)}</span>
-        `).join('');
-      } else {
-        itemsSection.classList.add('hidden');
-      }
-    }
-
-    // ① 📱 メッセージ・メール本文カード
-    const textTrans = post.text_translation || (post.image_translation ? '' : post.summary) || '';
-    const textRaw = post.text_raw || (post.image_raw ? '' : post.source_text) || '';
-    const textCard = document.getElementById('detailTextCard');
-    if (textCard) {
-      if (textTrans || textRaw) {
-        textCard.classList.remove('hidden');
-        const dtTrans = document.getElementById('detailTextTranslation');
-        if (dtTrans) dtTrans.innerText = textTrans || '本文翻訳なし';
-        const dtRaw = document.getElementById('detailTextRaw');
-        if (dtRaw) dtRaw.innerText = textRaw || '英語原文なし';
-      } else {
-        textCard.classList.add('hidden');
-      }
-    }
-
-    // ② 🖼️ 添付写真 ＆ 画像内の翻訳カード
-    const imageCard = document.getElementById('detailImageCard');
-    const imgTrans = post.image_translation || '';
-    const imgRaw = post.image_raw || '';
-    const hasImage = Boolean(post.image_url || imgTrans || imgRaw);
-
-    if (imageCard) {
-      if (hasImage) {
-        imageCard.classList.remove('hidden');
-        const imgEl = document.getElementById('detailImage');
-        if (imgEl) imgEl.src = post.image_url || '/static/samples/no_image.svg';
-
-        const transEl = document.getElementById('detailImageTranslation');
-        if (transEl) transEl.innerText = imgTrans || (post.image_url ? '（画像内のテキスト翻訳なし）' : '');
-        
-        const rawEl = document.getElementById('detailImageRaw');
-        if (rawEl) rawEl.innerText = imgRaw || '（OCR原文なし）';
-      } else {
-        imageCard.classList.add('hidden');
-      }
-    }
-
-    openModal('detailModal');
-  } catch (err) {
-    console.error('Error opening detail modal:', err);
-    openModal('detailModal');
+function openDetailModal(postId) {
+  if (postId) {
+    window.location.href = `/post/${postId}`;
+  } else if (activePostDetail && activePostDetail.id) {
+    window.location.href = `/post/${activePostDetail.id}`;
   }
 }
 
