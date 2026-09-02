@@ -213,12 +213,12 @@ function renderPosts(posts) {
     }).join('');
 
     const formattedDate = p.date ? p.date.replace(/-/g, '/') : '随時';
-    const previewImg = p.image_url || '/static/samples/field_trip.svg';
+    const previewImg = p.image_url || '/static/samples/no_image.svg';
 
     return `
       <div class="otayori-card p-3.5 flex gap-3.5 cursor-pointer hover:border-amber-300 transition" onclick="openDetailModal('${p.id}')">
         <!-- サムネイル画像 -->
-        <div class="w-16 h-20 rounded-xl bg-stone-100 border border-stone-200 overflow-hidden flex-shrink-0">
+        <div class="w-16 h-20 rounded-xl bg-stone-100 border border-stone-200 overflow-hidden flex-shrink-0 flex items-center justify-center">
           <img src="${previewImg}" class="w-full h-full object-cover" alt="プリント">
         </div>
 
@@ -523,7 +523,7 @@ async function openDetailModal(postId) {
 
     // 画像
     const imgEl = document.getElementById('detailImage');
-    imgEl.src = post.image_url || '/static/samples/field_trip.svg';
+    imgEl.src = post.image_url || '/static/samples/no_image.svg';
 
     // 持ち物
     const itemsContainer = document.getElementById('detailItems');
