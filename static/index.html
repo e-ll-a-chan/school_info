@@ -193,9 +193,24 @@
 
       <form id="draftForm" onsubmit="saveDraftPost(event)" class="space-y-4">
         
-        <!-- プレビュー画像（ある場合） -->
-        <div id="draftImageContainer" class="hidden w-full h-36 rounded-2xl bg-stone-100 overflow-hidden border border-stone-200">
-          <img id="draftImagePreview" class="w-full h-full object-cover" src="" alt="おたより画像">
+        <!-- 画像添付・変更エリア -->
+        <div class="space-y-2">
+          <div id="draftImageContainer" class="hidden relative w-full h-40 rounded-2xl bg-stone-100 overflow-hidden border border-stone-200 flex items-center justify-center">
+            <img id="draftImagePreview" class="w-full h-full object-contain bg-stone-50" src="" alt="おたより画像">
+            <button type="button" onclick="removeDraftImage()" class="absolute top-2 right-2 px-2.5 py-1 rounded-xl bg-black/60 hover:bg-black/80 text-white text-[10px] font-bold backdrop-blur flex items-center gap-1 transition">
+              <i data-lucide="trash-2" class="w-3 h-3"></i>
+              <span>画像を削除</span>
+            </button>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <input type="file" id="draftImageFileInput" accept="image/*,application/pdf" class="hidden" onchange="handleDraftImageUpload(event)">
+            <button type="button" onclick="document.getElementById('draftImageFileInput').click()" class="py-2 px-3 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold flex items-center gap-1.5 transition">
+              <i data-lucide="camera" class="w-3.5 h-3.5 text-stone-600"></i>
+              <span id="draftImageBtnText">📷 写真・画像を添付 / 変更</span>
+            </button>
+            <span id="draftImageUploadingMsg" class="hidden text-xs text-amber-600 font-bold animate-pulse">アップロード中...</span>
+          </div>
         </div>
 
         <!-- タイトル（日本語 ＆ 英語） -->

@@ -147,6 +147,24 @@ async def analyze_document(
             "draft": fallback_draft
         })
 
+@app.post("/api/upload")
+async def upload_image_only(file: UploadFile = File(...)):
+    """おたより編集時などの画像単体アップロード"""
+    if not file or not file.filename:
+        raise HTTPException(status_code=400, detail="ファイルが指定されていません")
+    content = await file.read()
+    if len(content) == 0:
+        raise HTTPException(status_code=400, detail="空のファイルです")
+    
+    file_ext = os.path.splitext(file.filename)[1] or ".jpg"
+    saved_filename = f"{uuid.uuid4()}{file_ext}"
+    saved_path = os.path.join(UPLOAD_DIR, saved_filename)
+    with open(saved_path, "wb") as f:
+        f.write(content)
+    
+    image_url = f"/uploads/{saved_filename}"
+    return {"status": "success", "image_url": image_url}
+
 @app.get("/api/posts")
 def get_posts(q: Optional[str] = Query(None), tag: Optional[str] = Query(None)):
     """おたより一覧取得・日英全文検索・タグフィルタ"""

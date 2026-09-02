@@ -464,16 +464,64 @@ function openDraftModal(draft, isEditing = false) {
   }
 
   // 画像プレビュー
-  const imgContainer = document.getElementById('draftImageContainer');
-  const imgPreview = document.getElementById('draftImagePreview');
-  if (draft.image_url) {
-    imgPreview.src = draft.image_url;
-    imgContainer.classList.remove('hidden');
-  } else {
-    imgContainer.classList.add('hidden');
-  }
+  updateDraftImageDisplay();
 
   openModal('draftModal');
+}
+
+function updateDraftImageDisplay() {
+  const imgContainer = document.getElementById('draftImageContainer');
+  const imgPreview = document.getElementById('draftImagePreview');
+  const btnText = document.getElementById('draftImageBtnText');
+
+  if (currentDraftData && currentDraftData.image_url) {
+    imgPreview.src = currentDraftData.image_url;
+    imgContainer.classList.remove('hidden');
+    if (btnText) btnText.innerText = '📷 写真・画像を変更する';
+  } else {
+    imgContainer.classList.add('hidden');
+    if (btnText) btnText.innerText = '📷 写真・画像を添付する';
+  }
+  if (window.lucide) lucide.createIcons();
+}
+
+async function handleDraftImageUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const msg = document.getElementById('draftImageUploadingMsg');
+  if (msg) msg.classList.remove('hidden');
+
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const res = await fetch('/api/upload', {
+      method: 'POST',
+      body: formData
+    });
+    if (!res.ok) throw new Error('アップロード失敗');
+    const data = await res.json();
+
+    if (currentDraftData && data.image_url) {
+      currentDraftData.image_url = data.image_url;
+      updateDraftImageDisplay();
+      showNotificationToast('📷 画像を添付しました！');
+    }
+  } catch (err) {
+    alert('画像のアップロードに失敗しました: ' + err.message);
+  } finally {
+    if (msg) msg.classList.add('hidden');
+    event.target.value = '';
+  }
+}
+
+function removeDraftImage() {
+  if (currentDraftData) {
+    currentDraftData.image_url = null;
+    updateDraftImageDisplay();
+    showNotificationToast('🗑️ 画像の添付を解除しました');
+  }
 }
 
 function renderDraftTagButtons() {
