@@ -108,6 +108,14 @@ def get_index():
         "Expires": "0"
     })
 
+@app.get("/new")
+def get_new_post_page():
+    return FileResponse(os.path.join(STATIC_DIR, "new.html"), headers={
+        "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
+        "Pragma": "no-cache",
+        "Expires": "0"
+    })
+
 @app.get("/post/{post_id}")
 def get_post_detail_page(post_id: str):
     post = db.get_post_by_id(post_id)
