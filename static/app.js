@@ -769,13 +769,32 @@ function editCurrentPost() {
 
 async function openDetailModal(postId) {
   try {
-    const res = await fetch(`/api/posts/${postId}`);
-    const post = await res.json();
+    let post = null;
+    if (window.__INITIAL_DATA__ && window.__INITIAL_DATA__.posts) {
+      post = window.__INITIAL_DATA__.posts.find(p => String(p.id) === String(postId));
+    }
+    if (!post && currentPosts && currentPosts.length > 0) {
+      post = currentPosts.find(p => String(p.id) === String(postId));
+    }
+    if (!post) {
+      const res = await fetch(`/api/posts/${postId}`);
+      if (res.ok) post = await res.json();
+    }
+    if (!post) {
+      alert('おたよりデータが見つかりませんでした');
+      return;
+    }
+
     activePostDetail = post;
 
-    document.getElementById('detailTitle').innerText = post.title;
-    document.getElementById('detailTitleEn').innerText = post.title_en || '';
-    document.getElementById('detailDateDisplay').innerText = post.date ? `${post.date.replace(/-/g, '/')}` : '';
+    const titleEl = document.getElementById('detailTitle');
+    if (titleEl) titleEl.innerText = post.title || 'お知らせ';
+    
+    const titleEnEl = document.getElementById('detailTitleEn');
+    if (titleEnEl) titleEnEl.innerText = post.title_en || '';
+
+    const dateDisplayEl = document.getElementById('detailDateDisplay');
+    if (dateDisplayEl) dateDisplayEl.innerText = post.date ? `${post.date.replace(/-/g, '/')}` : '';
     
     // タグバッジ群
     const badgesContainer = document.getElementById('detailBadgesContainer');
@@ -795,46 +814,59 @@ async function openDetailModal(postId) {
     // 日時・場所カード
     const dateTimeCard = document.getElementById('detailDateTimeCard');
     const hasDateTime = Boolean(post.date || post.time_start || post.location || post.deadline);
-    if (hasDateTime) {
-      dateTimeCard.classList.remove('hidden');
-      const timeStr = (post.time_start && post.time_end) ? `${post.time_start} 〜 ${post.time_end}` : (post.time_start || '終日');
-      document.getElementById('detailTime').innerText = timeStr;
-      document.getElementById('detailLocation').innerText = post.location || '学校';
+    if (dateTimeCard) {
+      if (hasDateTime) {
+        dateTimeCard.classList.remove('hidden');
+        const timeStr = (post.time_start && post.time_end) ? `${post.time_start} 〜 ${post.time_end}` : (post.time_start || '終日');
+        const dtTime = document.getElementById('detailTime');
+        if (dtTime) dtTime.innerText = timeStr;
 
-      // 締切
-      const deadlineRow = document.getElementById('detailDeadlineRow');
-      if (post.deadline) {
-        document.getElementById('detailDeadline').innerText = `${post.deadline.replace(/-/g, '/')} (${post.deadline_description || '提出'})`;
-        deadlineRow.classList.remove('hidden');
+        const dtLoc = document.getElementById('detailLocation');
+        if (dtLoc) dtLoc.innerText = post.location || '学校';
+
+        const deadlineRow = document.getElementById('detailDeadlineRow');
+        const dtDeadline = document.getElementById('detailDeadline');
+        if (deadlineRow && dtDeadline) {
+          if (post.deadline) {
+            dtDeadline.innerText = `${post.deadline.replace(/-/g, '/')} (${post.deadline_description || '提出'})`;
+            deadlineRow.classList.remove('hidden');
+          } else {
+            deadlineRow.classList.add('hidden');
+          }
+        }
       } else {
-        deadlineRow.classList.add('hidden');
+        dateTimeCard.classList.add('hidden');
       }
-    } else {
-      dateTimeCard.classList.add('hidden');
     }
 
     // 持ち物（ある場合のみ表示）
     const itemsSection = document.getElementById('detailItemsSection');
     const itemsContainer = document.getElementById('detailItems');
-    if ((post.items || []).length > 0) {
-      itemsSection.classList.remove('hidden');
-      itemsContainer.innerHTML = post.items.map(item => `
-        <span class="item-tag text-xs px-2.5 py-1">🎒 ${escapeHtml(item)}</span>
-      `).join('');
-    } else {
-      itemsSection.classList.add('hidden');
+    if (itemsSection && itemsContainer) {
+      if ((post.items || []).length > 0) {
+        itemsSection.classList.remove('hidden');
+        itemsContainer.innerHTML = post.items.map(item => `
+          <span class="item-tag text-xs px-2.5 py-1">🎒 ${escapeHtml(item)}</span>
+        `).join('');
+      } else {
+        itemsSection.classList.add('hidden');
+      }
     }
 
     // ① 📱 メッセージ・メール本文カード
-    const textTrans = post.text_translation || (post.image_translation ? '' : post.summary);
-    const textRaw = post.text_raw || (post.image_raw ? '' : post.source_text);
+    const textTrans = post.text_translation || (post.image_translation ? '' : post.summary) || '';
+    const textRaw = post.text_raw || (post.image_raw ? '' : post.source_text) || '';
     const textCard = document.getElementById('detailTextCard');
-    if (textTrans || textRaw) {
-      textCard.classList.remove('hidden');
-      document.getElementById('detailTextTranslation').innerText = textTrans || '本文翻訳なし';
-      document.getElementById('detailTextRaw').innerText = textRaw || '英語原文なし';
-    } else {
-      textCard.classList.add('hidden');
+    if (textCard) {
+      if (textTrans || textRaw) {
+        textCard.classList.remove('hidden');
+        const dtTrans = document.getElementById('detailTextTranslation');
+        if (dtTrans) dtTrans.innerText = textTrans || '本文翻訳なし';
+        const dtRaw = document.getElementById('detailTextRaw');
+        if (dtRaw) dtRaw.innerText = textRaw || '英語原文なし';
+      } else {
+        textCard.classList.add('hidden');
+      }
     }
 
     // ② 🖼️ 添付写真 ＆ 画像内の翻訳カード
@@ -843,22 +875,26 @@ async function openDetailModal(postId) {
     const imgRaw = post.image_raw || '';
     const hasImage = Boolean(post.image_url || imgTrans || imgRaw);
 
-    if (hasImage) {
-      imageCard.classList.remove('hidden');
-      const imgEl = document.getElementById('detailImage');
-      imgEl.src = post.image_url || '/static/samples/no_image.svg';
+    if (imageCard) {
+      if (hasImage) {
+        imageCard.classList.remove('hidden');
+        const imgEl = document.getElementById('detailImage');
+        if (imgEl) imgEl.src = post.image_url || '/static/samples/no_image.svg';
 
-      const transEl = document.getElementById('detailImageTranslation');
-      transEl.innerText = imgTrans || (post.image_url ? '（画像内のテキスト翻訳なし）' : '');
-      document.getElementById('detailImageRaw').innerText = imgRaw || '（OCR原文なし）';
-    } else {
-      imageCard.classList.add('hidden');
+        const transEl = document.getElementById('detailImageTranslation');
+        if (transEl) transEl.innerText = imgTrans || (post.image_url ? '（画像内のテキスト翻訳なし）' : '');
+        
+        const rawEl = document.getElementById('detailImageRaw');
+        if (rawEl) rawEl.innerText = imgRaw || '（OCR原文なし）';
+      } else {
+        imageCard.classList.add('hidden');
+      }
     }
 
     openModal('detailModal');
-    if (window.lucide) lucide.createIcons();
   } catch (err) {
-    alert('詳細の取得に失敗しました: ' + err.message);
+    console.error('Error opening detail modal:', err);
+    alert('詳細の表示でエラーが発生しました: ' + err.message);
   }
 }
 
