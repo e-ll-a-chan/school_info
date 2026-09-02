@@ -100,9 +100,134 @@ class LineNotifyRequest(BaseModel):
     post_id: Optional[str] = None
     custom_message: Optional[str] = None
 
+def render_index_html() -> str:
+    index_path = os.path.join(STATIC_DIR, "index.html")
+    with open(index_path, "r", encoding="utf-8") as f:
+        html_template = f.read()
+
+    posts = db.get_all_posts()
+    upcoming = db.get_upcoming_events()
+    settings = db.get_settings()
+    user_name = html.escape(str(settings.get("user_name", "めぐ")))
+
+    # おたよりカードHTML生成（最新順）
+    cards_html = []
+    for p in posts:
+        p_id = html.escape(str(p.get("id", "")))
+        p_title = html.escape(str(p.get("title", "お知らせ")))
+        p_title_en = html.escape(str(p.get("title_en", "")))
+        p_summary = html.escape(str(p.get("summary") or p.get("text_translation") or p.get("image_translation") or ""))
+        p_date_raw = p.get("date")
+        p_date_str = f"📅 {p_date_raw.replace('-', '/')}" if p_date_raw else "📅 随時"
+        p_img = p.get("image_url") or "/static/samples/no_image.svg"
+
+        tags_html = ""
+        for t in p.get("tags", []):
+            t_esc = html.escape(str(t))
+            color, icon = "bg-stone-100 text-stone-600", "🏷️"
+            if "英語" in t or "UOI" in t: color, icon = "bg-blue-100 text-blue-800", "📚"
+            elif "中国語" in t: color, icon = "bg-red-100 text-red-800", "🀄"
+            elif "アート" in t: color, icon = "bg-purple-100 text-purple-800", "🎨"
+            elif "Music" in t: color, icon = "bg-pink-100 text-pink-800", "🎵"
+            elif "行事" in t: color, icon = "bg-emerald-100 text-emerald-800", "🏫"
+            elif "提出物" in t: color, icon = "bg-amber-100 text-amber-800", "⚠️"
+            tags_html += f'<span class="px-2 py-0.5 rounded-md text-[10px] font-bold {color}">{icon} {t_esc}</span>'
+
+        items = p.get("items", [])
+        items_badge = f'<span class="text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded font-bold">🎒 持ち物 {len(items)}点</span>' if items else ''
+        dl = p.get("deadline")
+        dl_badge = f'<span class="text-red-700 bg-red-50 px-1.5 py-0.5 rounded font-bold">⚠️ 締切: {dl.replace("-", "/")}</span>' if dl else ''
+
+        card = f'''
+        <a href="/post/{p_id}" class="otayori-card block p-3.5 flex gap-3.5 hover:border-amber-300 transition no-underline">
+          <div class="w-16 h-20 rounded-xl bg-stone-100 border border-stone-200 overflow-hidden flex-shrink-0 flex items-center justify-center">
+            <img src="{p_img}" class="w-full h-full object-cover" alt="プリント">
+          </div>
+          <div class="flex-1 min-w-0 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center gap-1.5 flex-wrap">
+                {tags_html}
+                <span class="text-[10px] text-stone-400 font-semibold ml-auto">{p_date_str}</span>
+              </div>
+              <h3 class="text-xs font-extrabold text-stone-900 mt-1 truncate leading-tight">{p_title}</h3>
+              <p class="text-[10px] text-stone-400 truncate">{p_title_en}</p>
+            </div>
+            <p class="text-[11px] text-stone-600 line-clamp-2 mt-1 leading-snug">{p_summary}</p>
+            <div class="flex items-center justify-between mt-2 pt-1.5 border-t border-stone-100 text-[10px]">
+              <div class="flex items-center gap-1.5 truncate max-w-[190px]">
+                {items_badge}
+                {dl_badge}
+              </div>
+              <span class="text-emerald-700 font-bold flex items-center gap-0.5 flex-shrink-0">
+                <span>詳細</span>
+                <span class="text-xs">›</span>
+              </span>
+            </div>
+          </div>
+        </a>
+        '''
+        cards_html.append(card)
+
+    rendered_posts = "\n".join(cards_html) if cards_html else '<div class="text-center py-8 text-stone-400 text-xs">おたよりはありません</div>'
+
+    # 直近の予定HTML生成
+    upcoming_html_cards = []
+    for ev in upcoming:
+        ev_id = html.escape(str(ev.get("id", "")))
+        ev_title = html.escape(str(ev.get("title", "")))
+        ev_loc = html.escape(str(ev.get("location", "学校")))
+        ev_date = ev.get("date", "")
+        day_str = ev_date.split("-")[2] if (ev_date and len(ev_date.split("-")) == 3) else "—"
+        month_str = f"{int(ev_date.split('-')[1])}月" if (ev_date and len(ev_date.split("-")) == 3) else "—"
+        time_str = f"<span>⏰ {ev.get('time_start')}〜</span>" if ev.get("time_start") else ""
+
+        items_tags = "".join([f'<span class="item-tag truncate max-w-[140px]">🎒 {html.escape(str(it).split("(")[0].strip())}</span>' for it in ev.get("items", [])[:3]])
+
+        up_card = f'''
+        <a href="/post/{ev_id}" class="otayori-card block p-3.5 flex items-center justify-between gap-3 hover:border-sky-300 transition no-underline">
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="date-badge">
+              <span class="day">{day_str}</span>
+              <span class="month">{month_str}</span>
+            </div>
+            <div class="min-w-0">
+              <div class="flex items-center gap-1.5">
+                <h4 class="font-extrabold text-xs text-stone-800 truncate">{ev_title}</h4>
+              </div>
+              <div class="flex items-center gap-1 mt-1 text-[11px] text-stone-500">
+                {time_str}
+                <span class="truncate">📍 {ev_loc}</span>
+              </div>
+              <div class="flex flex-wrap gap-1 mt-1.5">
+                {items_tags}
+              </div>
+            </div>
+          </div>
+          <div class="flex flex-col items-end gap-1 flex-shrink-0">
+            <span class="text-emerald-700 font-bold text-xs flex items-center gap-0.5">
+              <span>詳細</span>
+              <span>›</span>
+            </span>
+          </div>
+        </a>
+        '''
+        upcoming_html_cards.append(up_card)
+
+    rendered_upcoming = "\n".join(upcoming_html_cards) if upcoming_html_cards else '<div class="text-center py-4 text-stone-400 text-xs">直近の予定はありません</div>'
+
+    # 置換
+    import re
+    res_html = re.sub(r'<div id="postsList"[^>]*>[\s\S]*?</div>\s*</section>', f'<div id="postsList" class="space-y-3 mt-2">\n{rendered_posts}\n</div>\n</section>', html_template)
+    res_html = re.sub(r'<div id="upcomingEventsList"[^>]*>[\s\S]*?</div>\s*</section>', f'<div id="upcomingEventsList" class="space-y-2.5">\n{rendered_upcoming}\n</div>\n</section>', res_html)
+    res_html = re.sub(r'<span id="postsCount"[^>]*>.*?</span>', f'<span id="postsCount" class="text-xs text-stone-400 font-semibold">{len(posts)}件</span>', res_html)
+    res_html = res_html.replace('id="userNameDisplay">めぐ</span>', f'id="userNameDisplay">{user_name}</span>')
+
+    return res_html
+
 @app.get("/")
 def get_index():
-    return FileResponse(os.path.join(STATIC_DIR, "index.html"), headers={
+    content = render_index_html()
+    return HTMLResponse(content=content, headers={
         "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
         "Pragma": "no-cache",
         "Expires": "0"
