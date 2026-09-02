@@ -1129,17 +1129,15 @@ function openSettingsModal() {
 function openModal(id) {
   const modal = document.getElementById(id);
   if (modal) {
-    modal.classList.add('is-open');
-    if (window.lucide) {
-      try { lucide.createIcons(); } catch (e) {}
-    }
+    modal.classList.remove('hidden');
+    if (window.lucide) lucide.createIcons();
   }
 }
 
 function closeModal(id) {
   const modal = document.getElementById(id);
   if (modal) {
-    modal.classList.remove('is-open');
+    modal.classList.add('hidden');
   }
 }
 
