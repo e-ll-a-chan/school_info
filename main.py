@@ -138,8 +138,9 @@ def render_index_html() -> str:
         dl = p.get("deadline")
         dl_badge = f'<span class="text-red-700 bg-red-50 px-1.5 py-0.5 rounded font-bold">⚠️ 締切: {dl.replace("-", "/")}</span>' if dl else ''
 
+        raw_tags = ",".join(p.get("tags", []))
         card = f'''
-        <a href="/post/{p_id}" class="otayori-card block p-3.5 flex gap-3.5 hover:border-amber-300 transition no-underline">
+        <a href="/post/{p_id}" data-tags="{html.escape(raw_tags)}" class="otayori-card block p-3.5 flex gap-3.5 hover:border-amber-300 transition no-underline">
           <div class="w-16 h-20 rounded-xl bg-stone-100 border border-stone-200 overflow-hidden flex-shrink-0 flex items-center justify-center">
             <img src="{p_img}" class="w-full h-full object-cover" alt="プリント">
           </div>
@@ -442,8 +443,15 @@ def get_post_detail_page(post_id: str):
         </a>
       </div>
 
+      <!-- 削除ボタン -->
+      <div class="text-center pt-3 pb-2 border-t border-stone-100">
+        <button onclick="deleteThisPost('{post_id}', '{title}')" class="text-xs font-bold text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 px-4 py-2.5 rounded-xl transition flex items-center justify-center gap-1.5 mx-auto active:scale-95">
+          <span>🗑️ このおたよりを削除する</span>
+        </button>
+      </div>
+
       <!-- 戻るボタン -->
-      <div class="text-center pt-4 pb-6">
+      <div class="text-center pt-2 pb-6">
         <a href="/" class="inline-block text-xs font-bold text-stone-500 hover:text-stone-800 bg-stone-100 px-5 py-2.5 rounded-2xl transition">
           ← おたより一覧に戻る
         </a>
@@ -451,6 +459,23 @@ def get_post_detail_page(post_id: str):
 
     </main>
   </div>
+
+  <script>
+    async function deleteThisPost(postId, postTitle) {{
+      if (!confirm('「' + postTitle + '」を削除してもよろしいですか？')) return;
+      try {{
+        const res = await fetch('/api/posts/' + postId, {{ method: 'DELETE' }});
+        if (res.ok) {{
+          alert('🗑️ おたよりを削除しました');
+          window.location.href = '/';
+        }} else {{
+          alert('削除に失敗しました');
+        }}
+      }} catch (err) {{
+        alert('削除エラー: ' + err.message);
+      }}
+    }}
+  </script>
 </body>
 </html>
 '''

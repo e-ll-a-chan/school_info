@@ -327,14 +327,46 @@ function clearSearch() {
 
 function filterByTag(tag) {
   activeTag = tag;
+  
+  // 1. タブボタンスタイルの切り替え
   document.querySelectorAll('.tag-filter-btn').forEach(btn => {
-    if (btn.innerText.includes(tag) || (tag === 'all' && btn.innerText === 'すべて')) {
+    const text = btn.innerText.trim();
+    if (tag === 'all' && text.includes('すべて')) {
+      btn.className = 'tag-filter-btn active px-3 py-1.5 rounded-full font-bold bg-stone-800 text-white shadow-sm transition whitespace-nowrap';
+    } else if (tag !== 'all' && (text.includes(tag) || (tag === '提出物あり' && text.includes('提出物')))) {
       btn.className = 'tag-filter-btn active px-3 py-1.5 rounded-full font-bold bg-stone-800 text-white shadow-sm transition whitespace-nowrap';
     } else {
       btn.className = 'tag-filter-btn px-3 py-1.5 rounded-full font-bold bg-white text-stone-600 border border-stone-200 hover:bg-stone-50 transition whitespace-nowrap';
     }
   });
-  loadPosts(document.getElementById('searchInput').value.trim());
+
+  // 2. 画面上のおたよりカードの即時絞り込み
+  const cards = document.querySelectorAll('#postsList .otayori-card');
+  let visibleCount = 0;
+
+  cards.forEach(card => {
+    const cardTags = card.getAttribute('data-tags') || card.innerText || '';
+    let match = false;
+    if (tag === 'all') {
+      match = true;
+    } else if (tag === '提出物あり') {
+      match = cardTags.includes('提出物');
+    } else if (tag === '英語・UOI') {
+      match = cardTags.includes('英語') || cardTags.includes('UOI');
+    } else {
+      match = cardTags.includes(tag);
+    }
+
+    if (match) {
+      card.style.display = 'flex';
+      visibleCount++;
+    } else {
+      card.style.display = 'none';
+    }
+  });
+
+  const countEl = document.getElementById('postsCount');
+  if (countEl) countEl.innerText = `${visibleCount}件`;
 }
 
 // --- アップロード & AI解析 ---
