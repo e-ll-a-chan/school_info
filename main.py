@@ -267,11 +267,8 @@ def export_calendar(post_id: Optional[str] = None):
 @app.post("/api/line/notify")
 def send_line_notification(req: LineNotifyRequest):
     """
-    LINE通知シミュレーターおよび実送信
+    LINE通知シミュレーターおよび実送信 (Fairview school info形式)
     """
-    settings = db.get_settings()
-    user_name = settings.get("user_name", "めぐ")
-
     if req.custom_message:
         message = req.custom_message
     elif req.post_id:
@@ -279,19 +276,18 @@ def send_line_notification(req: LineNotifyRequest):
         if not post:
             raise HTTPException(status_code=404, detail="おたよりが見つかりません")
         
-        items_str = "、".join(post.get("items", [])) or "特になし"
-        message = f"📮【おたよりポスト通知】\n\nこんにちは、{user_name}さん！\n\n📅 明日・直近の予定:\n「{post.get('title')}」\n\n🎒 持ち物チェック:\n{items_str}\n\n⏰ 時間: {post.get('time_start', '未定')} 〜 {post.get('time_end', '未定')}\n📍 場所: {post.get('location', '学校')}"
-        if post.get("deadline"):
-            message += f"\n\n⚠️ 提出締切: {post.get('deadline')} ({post.get('deadline_description', '提出用紙')})"
+        title = post.get("title", "")
+        summary = post.get("summary", "")
+        message = f"Fairview  school info📢\n重要な予定\n「{title}」\n「{summary}」"
     else:
-        # 明日の予定サマリー
-        upcoming = db.get_upcoming_events(limit=2)
+        upcoming = db.get_upcoming_events(limit=1)
         if upcoming:
             p = upcoming[0]
-            items_str = "、".join(p.get("items", []))
-            message = f"📮【おたよりポスト明日のリマインド】\n\nこんにちは、{user_name}さん！\n\n📅 明日の予定: {p.get('title')}\n🎒 持ち物: {items_str}\n⏰ 集合: {p.get('time_start', '8:30')} / 下校: {p.get('time_end', '15:00')}\n\n忘れ物がないかチェックしてね！✨"
+            title = p.get("title", "")
+            summary = p.get("summary", "")
+            message = f"Fairview  school info📢\n重要な予定\n「{title}」\n「{summary}」"
         else:
-            message = f"📮【おたよりポスト】\nこんにちは、{user_name}さん！\n明日は特に登録された特別な行事はありません。良い一日を！😊"
+            message = "Fairview  school info📢\n重要な予定\n「現在、特別な予定はありません」\n「詳細はおたより一覧をご確認ください」"
 
     return {
         "status": "success",

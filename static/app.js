@@ -751,12 +751,12 @@ function notifyViaLine() {
 function shareDirectToLine() {
   let msg = currentLineMessageText;
   if (!msg && activePostDetail) {
-    msg = `📮【おたよりポスト】\n${activePostDetail.title}\n`;
-    if (activePostDetail.date) msg += `📅 日程: ${activePostDetail.date}\n`;
-    if (activePostDetail.summary) msg += `\n📝 連絡事項:\n${activePostDetail.summary}\n`;
+    const title = activePostDetail.title || '';
+    const summary = activePostDetail.summary || '';
+    msg = `Fairview  school info📢\n重要な予定\n「${title}」\n「${summary}」`;
   }
   if (!msg) {
-    msg = "📮 おたよりポストからの連絡です。";
+    msg = "Fairview  school info📢\n重要な予定";
   }
 
   const lineShareUrl = `https://line.me/R/msg/text/?${encodeURIComponent(msg)}`;
