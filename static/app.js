@@ -8,6 +8,26 @@ let activePostDetail = null;
 
 // --- 初期化 ---
 function initApp() {
+  if (window.__INITIAL_DATA__) {
+    try {
+      const init = window.__INITIAL_DATA__;
+      if (init.posts) {
+        currentPosts = init.posts;
+        renderPosts(currentPosts);
+        const countEl = document.getElementById('postsCount');
+        if (countEl) countEl.innerText = `${currentPosts.length}件`;
+      }
+      if (init.upcoming) renderUpcoming(init.upcoming);
+      if (init.deadlines) renderDeadlines(init.deadlines);
+      if (init.settings && init.settings.user_name) {
+        const uEl = document.getElementById('userNameDisplay');
+        if (uEl) uEl.innerText = init.settings.user_name;
+      }
+    } catch (e) {
+      console.log('SSR init error:', e);
+    }
+  }
+
   if (window.lucide) {
     try { lucide.createIcons(); } catch(e) {}
   }
