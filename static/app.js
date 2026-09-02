@@ -493,25 +493,47 @@ async function handleDraftImageUpload(event) {
   if (msg) msg.classList.remove('hidden');
 
   try {
-    const formData = new FormData();
-    formData.append('file', file);
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const base64Url = e.target.result;
+      if (currentDraftData) {
+        currentDraftData.image_url = base64Url;
+        updateDraftImageDisplay();
+      }
 
-    const res = await fetch('/api/upload', {
-      method: 'POST',
-      body: formData
-    });
-    if (!res.ok) throw new Error('アップロード失敗');
-    const data = await res.json();
+      // サーバーアップロードも試行（もし可能ならサーバーURLに更新）
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.image_url && currentDraftData) {
+            currentDraftData.image_url = data.image_url;
+            updateDraftImageDisplay();
+          }
+        }
+      } catch (uploadErr) {
+        console.log('Server upload fallback:', uploadErr);
+      }
 
-    if (currentDraftData && data.image_url) {
-      currentDraftData.image_url = data.image_url;
-      updateDraftImageDisplay();
       showNotificationToast('📷 画像を添付しました！');
-    }
+      if (msg) msg.classList.add('hidden');
+    };
+
+    reader.onerror = () => {
+      alert('画像の読み込みに失敗しました');
+      if (msg) msg.classList.add('hidden');
+    };
+
+    reader.readAsDataURL(file);
   } catch (err) {
-    alert('画像のアップロードに失敗しました: ' + err.message);
-  } finally {
     if (msg) msg.classList.add('hidden');
+    alert('画像の選択でエラーが発生しました: ' + err.message);
+  } finally {
     event.target.value = '';
   }
 }
