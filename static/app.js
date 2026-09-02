@@ -490,50 +490,85 @@ async function handleDraftImageUpload(event) {
   if (!file) return;
 
   const msg = document.getElementById('draftImageUploadingMsg');
-  if (msg) msg.classList.remove('hidden');
+  if (msg) {
+    msg.innerText = '🔍 画像を読取・翻訳中...';
+    msg.classList.remove('hidden');
+  }
+  showLoadingToast('🔍 画像内の英文を読み取り、日本語に翻訳しています...');
 
   try {
+    // 1. クライアント側で即時プレビュー表示
     const reader = new FileReader();
-    reader.onload = async (e) => {
-      const base64Url = e.target.result;
+    reader.onload = (e) => {
       if (currentDraftData) {
-        currentDraftData.image_url = base64Url;
+        currentDraftData.image_url = e.target.result;
         updateDraftImageDisplay();
       }
-
-      // サーバーアップロードも試行（もし可能ならサーバーURLに更新）
-      try {
-        const formData = new FormData();
-        formData.append('file', file);
-        const res = await fetch('/api/upload', {
-          method: 'POST',
-          body: formData
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.image_url && currentDraftData) {
-            currentDraftData.image_url = data.image_url;
-            updateDraftImageDisplay();
-          }
-        }
-      } catch (uploadErr) {
-        console.log('Server upload fallback:', uploadErr);
-      }
-
-      showNotificationToast('📷 画像を添付しました！');
-      if (msg) msg.classList.add('hidden');
     };
-
-    reader.onerror = () => {
-      alert('画像の読み込みに失敗しました');
-      if (msg) msg.classList.add('hidden');
-    };
-
     reader.readAsDataURL(file);
+
+    // 2. サーバーに画像を送信してAI解析＆全文翻訳を実行！
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const res = await fetch('/api/analyze', {
+      method: 'POST',
+      body: formData
+    });
+
+    hideLoadingToast();
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data.draft) {
+        const d = data.draft;
+        
+        // 翻訳結果をフォームに自動反映
+        if (d.title) document.getElementById('draftTitle').value = d.title;
+        if (d.title_en) document.getElementById('draftTitleEn').value = d.title_en;
+        if (d.summary) document.getElementById('draftSummary').value = d.summary;
+        if (d.source_text) document.getElementById('draftSourceText').value = d.source_text;
+        
+        if (d.date) {
+          document.getElementById('draftDate').value = d.date;
+          const dtDetails = document.getElementById('draftDateTimeDetails');
+          if (dtDetails) dtDetails.open = true;
+        }
+        if (d.deadline) {
+          document.getElementById('draftDeadline').value = d.deadline;
+          document.getElementById('draftDeadlineDesc').value = d.deadline_description || '';
+          const dlDetails = document.getElementById('draftDeadlineDetails');
+          if (dlDetails) dlDetails.open = true;
+        }
+
+        if (d.image_url && currentDraftData) {
+          currentDraftData.image_url = d.image_url;
+        }
+
+        if (d.tags && d.tags.length > 0 && currentDraftData) {
+          currentDraftData.tags = d.tags;
+          renderDraftTagButtons();
+        }
+
+        if (d.items && d.items.length > 0 && currentDraftData) {
+          currentDraftData.items = d.items;
+          renderDraftItems(currentDraftData.items);
+          const itDetails = document.getElementById('draftItemsDetails');
+          if (itDetails) itDetails.open = true;
+        }
+
+        updateDraftImageDisplay();
+        showNotificationToast('✨ 画像の英文を読み取り、日本語翻訳を反映しました！');
+      }
+    } else {
+      showNotificationToast('📷 画像を添付しました！');
+    }
   } catch (err) {
-    if (msg) msg.classList.add('hidden');
-    alert('画像の選択でエラーが発生しました: ' + err.message);
+    hideLoadingToast();
+    console.error('Image analyze error:', err);
+    showNotificationToast('📷 画像を添付しました！');
   } finally {
+    if (msg) msg.classList.add('hidden');
     event.target.value = '';
   }
 }
