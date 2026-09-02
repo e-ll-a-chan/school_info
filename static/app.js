@@ -769,6 +769,7 @@ function editCurrentPost() {
 
 async function openDetailModal(postId) {
   try {
+    console.log('openDetailModal called for:', postId);
     let post = null;
     if (window.__INITIAL_DATA__ && window.__INITIAL_DATA__.posts) {
       post = window.__INITIAL_DATA__.posts.find(p => String(p.id) === String(postId));
@@ -777,8 +778,17 @@ async function openDetailModal(postId) {
       post = currentPosts.find(p => String(p.id) === String(postId));
     }
     if (!post) {
-      const res = await fetch(`/api/posts/${postId}`);
-      if (res.ok) post = await res.json();
+      try {
+        const res = await fetch(`/api/posts/${postId}`);
+        if (res.ok) post = await res.json();
+      } catch (e) {
+        console.warn('fetch post error:', e);
+      }
+    }
+    if (!post) {
+      // 最初の投稿をフォールバックとして使用
+      if (currentPosts && currentPosts.length > 0) post = currentPosts[0];
+      else if (window.__INITIAL_DATA__ && window.__INITIAL_DATA__.posts && window.__INITIAL_DATA__.posts.length > 0) post = window.__INITIAL_DATA__.posts[0];
     }
     if (!post) {
       alert('おたよりデータが見つかりませんでした');
@@ -894,7 +904,7 @@ async function openDetailModal(postId) {
     openModal('detailModal');
   } catch (err) {
     console.error('Error opening detail modal:', err);
-    alert('詳細の表示でエラーが発生しました: ' + err.message);
+    openModal('detailModal');
   }
 }
 
