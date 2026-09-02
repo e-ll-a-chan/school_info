@@ -307,11 +307,12 @@ if __name__ == "__main__":
     import socket
     import time
 
-    def find_free_port(start_port=8000, max_attempts=20):
+    def find_free_port(start_port=8000, max_attempts=30):
         for port in range(start_port, start_port + max_attempts):
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 try:
-                    s.bind(('127.0.0.1', port))
+                    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                    s.bind(('0.0.0.0', port))
                     return port
                 except OSError:
                     continue
