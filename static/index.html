@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>おたよりポスト | 英語プリントをAIが自動翻訳・予定管理</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📮</text></svg>">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="manifest" href="/static/manifest.json">
+  <meta name="theme-color" content="#EF4444">
+</head>
+<body class="device-frame-mode antialiased select-none sm:select-auto">
+
+  <!-- メインアプリコンテナ -->
+  <div class="app-container" id="app">
+
+    <!-- 上部ステータスバー（スマホUI風） -->
+    <header class="px-5 pt-4 pb-3 flex items-center justify-between border-b border-stone-200/60 bg-white/80 backdrop-blur sticky top-0 z-30">
+      <div class="flex items-center gap-2.5">
+        <div class="w-10 h-10 rounded-2xl bg-red-500 text-white flex items-center justify-center text-xl shadow-md shadow-red-500/30">
+          📮
+        </div>
+        <div>
+          <div class="flex items-center gap-1.5">
+            <h1 class="font-extrabold text-lg tracking-tight text-stone-800">おたよりポスト</h1>
+            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700">EN ➔ JA</span>
+          </div>
+          <p class="text-xs text-stone-500 font-medium">こんにちは、<span id="userNameDisplay">めぐ</span>さん</p>
+        </div>
+      </div>
+      
+      <div class="flex items-center gap-1.5">
+        <!-- LINE通知ボタン -->
+        <button onclick="openLineModal()" title="LINE通知テスト" class="p-2 rounded-xl text-stone-600 hover:bg-stone-100 active:scale-95 transition">
+          <i data-lucide="message-circle" class="w-5 h-5 text-emerald-600"></i>
+        </button>
+        <!-- iCal一括ダウンロード -->
+        <a href="/api/calendar.ics" download="otayori_calendar.ics" title="カレンダー一括書き出し" class="p-2 rounded-xl text-stone-600 hover:bg-stone-100 active:scale-95 transition">
+          <i data-lucide="calendar" class="w-5 h-5 text-sky-600"></i>
+        </a>
+        <!-- 設定ボタン -->
+        <button onclick="openSettingsModal()" title="設定" class="p-2 rounded-xl text-stone-600 hover:bg-stone-100 active:scale-95 transition">
+          <i data-lucide="settings" class="w-5 h-5 text-stone-600"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- メインスクロールエリア -->
+    <main class="flex-1 px-4 py-4 space-y-5 pb-28">
+
+      <!-- 検索バー（日英全文検索） -->
+      <div class="relative">
+        <i data-lucide="search" class="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+        <input type="text" id="searchInput" placeholder="持ち物・行事・英語で検索 (例: 水筒, lunch, slip)..."
+               class="w-full pl-10 pr-9 py-2.5 bg-white border border-stone-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-red-400/40 focus:border-red-500 transition shadow-sm"
+               oninput="handleSearch()">
+        <button id="clearSearchBtn" onclick="clearSearch()" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- ⚠️ 提出物・締切アラート（ある場合） -->
+      <section id="deadlineSection" class="hidden">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-1.5 text-xs font-bold text-red-600 uppercase tracking-wider">
+            <i data-lucide="alert-circle" class="w-4 h-4"></i>
+            <span>提出物・締切アラート</span>
+          </div>
+          <span id="deadlineCount" class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700">0件</span>
+        </div>
+        <div id="deadlineList" class="space-y-2">
+          <!-- JSで動的レンダリング -->
+        </div>
+      </section>
+
+      <!-- 📅 直近の予定（予定・持ち物） -->
+      <section>
+        <div class="flex items-center justify-between mb-2.5">
+          <div class="flex items-center gap-1.5 text-xs font-bold text-stone-700 uppercase tracking-wider">
+            <i data-lucide="calendar-days" class="w-4 h-4 text-sky-600"></i>
+            <span>直近の予定 &amp; 持ち物</span>
+          </div>
+          <a href="/api/calendar.ics" class="text-xs text-sky-600 font-bold hover:underline flex items-center gap-0.5">
+            <span>カレンダー連携</span>
+            <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+          </a>
+        </div>
+        <div id="upcomingEventsList" class="space-y-2.5">
+          <!-- 直近の予定リスト -->
+          <div class="text-center py-6 text-stone-400 text-sm">予定を読み込み中...</div>
+        </div>
+      </section>
+
+      <!-- 📑 おたより一覧セクション -->
+      <section>
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-1.5 text-xs font-bold text-stone-700 uppercase tracking-wider">
+            <i data-lucide="file-text" class="w-4 h-4 text-amber-600"></i>
+            <span>届いたおたより一覧</span>
+          </div>
+          <span id="postsCount" class="text-xs text-stone-400 font-semibold">0件</span>
+        </div>
+
+        <!-- タグフィルター -->
+        <div class="flex items-center gap-1.5 overflow-x-auto pb-2 -mx-1 px-1 no-scrollbar text-xs">
+          <button onclick="filterByTag('all')" class="tag-filter-btn active px-3 py-1.5 rounded-full font-bold bg-stone-800 text-white shadow-sm transition whitespace-nowrap">すべて</button>
+          <button onclick="filterByTag('遠足')" class="tag-filter-btn px-3 py-1.5 rounded-full font-bold bg-white text-stone-600 border border-stone-200 hover:bg-stone-50 transition whitespace-nowrap">🎒 遠足</button>
+          <button onclick="filterByTag('行事')" class="tag-filter-btn px-3 py-1.5 rounded-full font-bold bg-white text-stone-600 border border-stone-200 hover:bg-stone-50 transition whitespace-nowrap">🏫 行事</button>
+          <button onclick="filterByTag('提出物あり')" class="tag-filter-btn px-3 py-1.5 rounded-full font-bold bg-white text-stone-600 border border-stone-200 hover:bg-stone-50 transition whitespace-nowrap">⚠️ 提出物</button>
+          <button onclick="filterByTag('PTA')" class="tag-filter-btn px-3 py-1.5 rounded-full font-bold bg-white text-stone-600 border border-stone-200 hover:bg-stone-50 transition whitespace-nowrap">🌱 PTA</button>
+        </div>
+
+        <!-- おたよりカードリスト -->
+        <div id="postsList" class="space-y-3 mt-2">
+          <!-- JSでレンダリング -->
+        </div>
+      </section>
+
+    </main>
+
+    <!-- フローティング「＋ おたよりをポスト」ボタン -->
+    <button onclick="openUploadModal()" class="fab-post-btn" title="新しい英語プリントを追加">
+      <i data-lucide="plus" class="w-8 h-8 stroke-[2.5]"></i>
+    </button>
+
+    <!-- デバイス枠切り替えボタン（画面右下） -->
+    <button onclick="toggleDeviceFrame()" id="frameToggleBtn" class="fixed bottom-4 left-4 z-20 px-3 py-1.5 rounded-xl bg-stone-900/80 hover:bg-stone-900 text-white text-xs font-semibold backdrop-blur shadow-lg transition flex items-center gap-1.5">
+      <i data-lucide="smartphone" class="w-3.5 h-3.5"></i>
+      <span id="frameToggleText">枠あり</span>
+    </button>
+
+  </div>
+
+  <!-- ================= モーダル群 ================= -->
+
+  <!-- 1. アップロード・撮影モーダル -->
+  <div id="uploadModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay animate-pop">
+    <div class="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b pb-3 border-stone-100">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-xl bg-red-100 text-red-600 flex items-center justify-center font-bold">📮</div>
+          <h3 class="font-extrabold text-stone-800 text-lg">英語のおたよりをポスト</h3>
+        </div>
+        <button onclick="closeModal('uploadModal')" class="p-1.5 text-stone-400 hover:text-stone-700 rounded-full hover:bg-stone-100">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- 入力方法選択: 写真/ファイル または テキスト直接入力 -->
+      <div class="space-y-3">
+        <!-- 写真撮影 / ファイルアップロード領域 -->
+        <div id="dropZone" class="border-2 border-dashed border-stone-300 hover:border-red-400 bg-stone-50 hover:bg-red-50/30 rounded-2xl p-4 text-center transition cursor-pointer" onclick="document.getElementById('fileInput').click()">
+          <input type="file" id="fileInput" accept="image/*,application/pdf" class="hidden" onchange="handleFileSelected(event)">
+          <div class="flex items-center justify-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-red-100 text-red-500 flex items-center justify-center flex-shrink-0">
+              <i data-lucide="camera" class="w-5 h-5"></i>
+            </div>
+            <div class="text-left">
+              <p class="font-bold text-xs text-stone-700">写真を撮影 / 画像・PDFを選択</p>
+              <p class="text-[10px] text-stone-400">タップしてファイルを選択</p>
+            </div>
+          </div>
+          <div id="selectedFileName" class="hidden mt-2.5 p-2 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-semibold flex items-center justify-center gap-1.5">
+            <i data-lucide="check-circle" class="w-4 h-4"></i>
+            <span id="selectedFileNameText" class="truncate max-w-[240px]"></span>
+          </div>
+        </div>
+
+        <!-- 英語テキスト直接入力エリア（常時表示） -->
+        <div class="space-y-1">
+          <label class="text-xs font-bold text-stone-700 flex items-center gap-1">
+            <i data-lucide="type" class="w-3.5 h-3.5 text-stone-500"></i>
+            <span>英語のおたよりテキスト（貼り付け）:</span>
+          </label>
+          <textarea id="rawTextInput" rows="4" placeholder="英語のおたよりの文章やメール本文をここに貼り付け&#10;(例: Autumn Field Trip to Zoo on Oct 15th. Please bring packed lunch and water bottle. Return slip by Oct 5th.)"
+                    class="w-full p-3 text-xs bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-400/40 font-mono"></textarea>
+        </div>
+      </div>
+
+      <!-- サンプルから試すボタン -->
+      <div class="pt-2 border-t border-stone-100">
+        <p class="text-[11px] font-bold text-stone-400 uppercase mb-2">サンプルプリントですぐ試す:</p>
+        <div class="grid grid-cols-2 gap-2">
+          <button onclick="loadSamplePreset('field_trip')" class="p-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-left text-xs font-semibold text-stone-700 flex items-center gap-1.5 transition">
+            <span>🎒</span>
+            <span class="truncate">秋の水族館遠足</span>
+          </button>
+          <button onclick="loadSamplePreset('term2')" class="p-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-left text-xs font-semibold text-stone-700 flex items-center gap-1.5 transition">
+            <span>🏫</span>
+            <span class="truncate">2学期始業式</span>
+          </button>
+          <button onclick="loadSamplePreset('pta')" class="p-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-left text-xs font-semibold text-stone-700 flex items-center gap-1.5 transition">
+            <span>🌱</span>
+            <span class="truncate">PTA除草作業</span>
+          </button>
+          <button onclick="loadSamplePreset('photo_day')" class="p-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-left text-xs font-semibold text-stone-700 flex items-center gap-1.5 transition">
+            <span>📸</span>
+            <span class="truncate">スクール写真撮影</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 解析開始ボタン -->
+      <button id="startAnalyzeBtn" onclick="submitAnalyze()" class="w-full py-3.5 rounded-2xl bg-red-600 hover:bg-red-700 active:scale-[0.98] text-white font-bold text-sm shadow-lg shadow-red-500/30 transition flex items-center justify-center gap-2">
+        <i data-lucide="sparkles" class="w-4 h-4"></i>
+        <span>AIで読取 ＆ 翻訳を開始</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- 2. AI読取・下書き確認エディタモーダル（AIを過信しない設計） -->
+  <div id="draftModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay animate-pop">
+    <div class="bg-white w-full max-w-lg rounded-3xl p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto">
+      
+      <!-- ヘッダー -->
+      <div class="flex items-center justify-between border-b pb-3 border-stone-100">
+        <div>
+          <div class="flex items-center gap-1.5 text-xs font-bold text-emerald-600">
+            <i data-lucide="sparkles" class="w-4 h-4"></i>
+            <span>AI読取 ＆ 翻訳完了（下書き確認）</span>
+          </div>
+          <p class="text-xs text-stone-500">内容を確認・修正してカレンダーに登録できます</p>
+        </div>
+        <button onclick="closeModal('draftModal')" class="p-1.5 text-stone-400 hover:text-stone-700 rounded-full hover:bg-stone-100">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="draftForm" onsubmit="saveDraftPost(event)" class="space-y-4">
+        
+        <!-- プレビュー画像（ある場合） -->
+        <div id="draftImageContainer" class="hidden w-full h-36 rounded-2xl bg-stone-100 overflow-hidden border border-stone-200">
+          <img id="draftImagePreview" class="w-full h-full object-cover" src="" alt="おたより画像">
+        </div>
+
+        <!-- タイトル（日本語 ＆ 英語） -->
+        <div class="space-y-1.5">
+          <label class="text-xs font-bold text-stone-700">おたよりタイトル（日本語）</label>
+          <input type="text" id="draftTitle" required class="w-full p-2.5 text-sm bg-stone-50 border border-stone-200 rounded-xl focus:ring-2 focus:ring-red-400/40">
+          <input type="text" id="draftTitleEn" placeholder="Original English Title" class="w-full p-2 text-xs bg-stone-100/70 border border-stone-200 rounded-xl text-stone-500">
+        </div>
+
+        <!-- 日付・時間・場所 -->
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-xs font-bold text-stone-700">📅 行事予定日</label>
+            <input type="date" id="draftDate" class="w-full p-2 text-xs bg-stone-50 border border-stone-200 rounded-xl">
+          </div>
+          <div>
+            <label class="text-xs font-bold text-stone-700">📍 場所</label>
+            <input type="text" id="draftLocation" placeholder="学校 / 体育館 / 水族館" class="w-full p-2 text-xs bg-stone-50 border border-stone-200 rounded-xl">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-xs font-bold text-stone-700">⏰ 集合・開始時刻</label>
+            <input type="time" id="draftTimeStart" class="w-full p-2 text-xs bg-stone-50 border border-stone-200 rounded-xl">
+          </div>
+          <div>
+            <label class="text-xs font-bold text-stone-700">⏰ 下校・終了時刻</label>
+            <input type="time" id="draftTimeEnd" class="w-full p-2 text-xs bg-stone-50 border border-stone-200 rounded-xl">
+          </div>
+        </div>
+
+        <!-- ⚠️ 提出物・締切（ある場合） -->
+        <div class="p-3 rounded-2xl bg-red-50/70 border border-red-200 space-y-2">
+          <div class="flex items-center justify-between">
+            <label class="text-xs font-bold text-red-800 flex items-center gap-1">
+              <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i>
+              <span>提出物・参加同意書の締切</span>
+            </label>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <span class="text-[10px] text-red-600 font-semibold">締切日</span>
+              <input type="date" id="draftDeadline" class="w-full p-2 text-xs bg-white border border-red-200 rounded-xl text-red-700 font-bold">
+            </div>
+            <div>
+              <span class="text-[10px] text-red-600 font-semibold">提出内容</span>
+              <input type="text" id="draftDeadlineDesc" placeholder="参加同意書（Permission Slip）" class="w-full p-2 text-xs bg-white border border-red-200 rounded-xl">
+            </div>
+          </div>
+        </div>
+
+        <!-- 🎒 持ち物リスト（タグ追加・削除可能） -->
+        <div class="space-y-1.5">
+          <div class="flex items-center justify-between">
+            <label class="text-xs font-bold text-stone-700">🎒 持ち物チェックリスト</label>
+            <span class="text-[10px] text-stone-400">タップで削除</span>
+          </div>
+          <div id="draftItemsContainer" class="flex flex-wrap gap-1.5 min-h-[32px] p-2 bg-stone-50 border border-stone-200 rounded-xl">
+            <!-- 持ち物バッジ -->
+          </div>
+          <div class="flex gap-1.5">
+            <input type="text" id="newDraftItemInput" placeholder="持ち物を追加 (例: 水筒, お弁当)" class="flex-1 p-2 text-xs bg-stone-50 border border-stone-200 rounded-xl">
+            <button type="button" onclick="addDraftItem()" class="px-3 py-2 bg-stone-200 hover:bg-stone-300 rounded-xl text-xs font-bold text-stone-700">追加</button>
+          </div>
+        </div>
+
+        <!-- 日本語翻訳 & 英語原文の対照 -->
+        <div class="space-y-2">
+          <div>
+            <label class="text-xs font-bold text-stone-700 flex items-center gap-1">
+              <span>🇯🇵 日本語翻訳 ＆ 連絡事項:</span>
+            </label>
+            <textarea id="draftSummary" rows="5" class="w-full p-2.5 text-xs bg-stone-50 border border-stone-200 rounded-xl leading-relaxed"></textarea>
+          </div>
+          <details class="text-xs">
+            <summary class="font-bold text-stone-500 cursor-pointer hover:text-stone-800">🇺🇸 英語原文テキストを確認する</summary>
+            <textarea id="draftSourceText" rows="4" class="w-full mt-1.5 p-2 text-[11px] bg-stone-100 text-stone-600 rounded-xl font-mono leading-relaxed"></textarea>
+          </details>
+        </div>
+
+        <!-- 登録確定ボタン -->
+        <div class="pt-2 flex gap-2">
+          <button type="button" onclick="closeModal('draftModal')" class="flex-1 py-3 rounded-xl bg-stone-100 text-stone-600 font-bold text-xs hover:bg-stone-200">キャンセル</button>
+          <button type="submit" class="flex-[2] py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/30 flex items-center justify-center gap-1.5">
+            <i data-lucide="check" class="w-4 h-4"></i>
+            <span>この内容でおたよりを登録</span>
+          </button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+  <!-- 3. おたより詳細モーダル -->
+  <div id="detailModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay animate-pop">
+    <div class="bg-white w-full max-w-lg rounded-3xl p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b pb-3 border-stone-100">
+        <div class="flex items-center gap-2">
+          <span id="detailBadge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800">行事</span>
+          <span id="detailDateDisplay" class="text-xs text-stone-500 font-semibold"></span>
+        </div>
+        <button onclick="closeModal('detailModal')" class="p-1.5 text-stone-400 hover:text-stone-700 rounded-full hover:bg-stone-100">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- 画像 -->
+      <div id="detailImageContainer" class="w-full h-48 rounded-2xl bg-stone-100 overflow-hidden border border-stone-200">
+        <img id="detailImage" class="w-full h-full object-contain bg-stone-50" src="" alt="プリント">
+      </div>
+
+      <!-- タイトル -->
+      <div>
+        <h2 id="detailTitle" class="text-lg font-black text-stone-900 leading-snug"></h2>
+        <p id="detailTitleEn" class="text-xs text-stone-500 font-medium mt-0.5"></p>
+      </div>
+
+      <!-- 行事詳細カード -->
+      <div class="p-3.5 rounded-2xl bg-stone-50 border border-stone-200/80 space-y-2 text-xs">
+        <div class="flex items-center justify-between">
+          <span class="text-stone-500">⏰ 日時・時間:</span>
+          <span id="detailTime" class="font-bold text-stone-800"></span>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-stone-500">📍 場所:</span>
+          <span id="detailLocation" class="font-bold text-stone-800"></span>
+        </div>
+        <div id="detailDeadlineRow" class="hidden flex items-center justify-between text-red-600 font-bold border-t border-red-100 pt-2">
+          <span class="flex items-center gap-1"><i data-lucide="alert-circle" class="w-3.5 h-3.5"></i> 提出締切:</span>
+          <span id="detailDeadline"></span>
+        </div>
+      </div>
+
+      <!-- 持ち物 -->
+      <div>
+        <h4 class="text-xs font-bold text-stone-700 mb-1.5 flex items-center gap-1">
+          <i data-lucide="backpack" class="w-3.5 h-3.5 text-amber-600"></i>
+          <span>持ち物リスト</span>
+        </h4>
+        <div id="detailItems" class="flex flex-wrap gap-1.5">
+          <!-- 持ち物バッジ -->
+        </div>
+      </div>
+
+      <!-- 日本語要約 -->
+      <div>
+        <h4 class="text-xs font-bold text-stone-700 mb-1">📝 日本語要約・連絡事項</h4>
+        <p id="detailSummary" class="text-xs leading-relaxed text-stone-700 bg-stone-50 p-3 rounded-2xl border border-stone-200"></p>
+      </div>
+
+      <!-- 英語原文 -->
+      <details class="text-xs">
+        <summary class="font-bold text-stone-500 cursor-pointer hover:text-stone-800">🇺🇸 英語の原文テキストを表示</summary>
+        <div id="detailSourceText" class="mt-1.5 p-3 rounded-xl bg-stone-100 text-stone-600 text-[11px] font-mono whitespace-pre-wrap leading-relaxed"></div>
+      </details>
+
+      <!-- アクションボタン（Googleカレンダー登録 & LINE通知） -->
+      <div class="pt-2 grid grid-cols-2 gap-2">
+        <button id="detailGoogleCalBtn" onclick="addToGoogleCalendar()" class="py-2.5 px-3 rounded-xl bg-sky-50 text-sky-700 hover:bg-sky-100 border border-sky-200 font-bold text-xs flex items-center justify-center gap-1.5 transition">
+          <i data-lucide="calendar-plus" class="w-4 h-4"></i>
+          <span>Googleカレンダーに追加</span>
+        </button>
+        <button id="detailLineNotifyBtn" onclick="notifyViaLine()" class="py-2.5 px-3 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 font-bold text-xs flex items-center justify-center gap-1.5 transition">
+          <i data-lucide="send" class="w-4 h-4"></i>
+          <span>LINEで家族に共有</span>
+        </button>
+      </div>
+
+      <!-- 削除ボタン -->
+      <div class="text-center pt-1">
+        <button id="detailDeleteBtn" onclick="deleteCurrentPost()" class="text-xs text-red-500 hover:text-red-700 font-medium">このおたよりを削除する</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 4. LINE通知シミュレーター / 設定モーダル -->
+  <div id="lineModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay animate-pop">
+    <div class="bg-white w-full max-w-sm rounded-3xl p-5 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b pb-2 border-stone-100">
+        <div class="flex items-center gap-2">
+          <div class="w-7 h-7 rounded-lg bg-[#06C755] text-white flex items-center justify-center font-bold text-xs">LINE</div>
+          <h3 class="font-extrabold text-stone-800 text-sm">LINE通知プレビュー</h3>
+        </div>
+        <button onclick="closeModal('lineModal')" class="p-1 text-stone-400 hover:text-stone-700 rounded-full">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- LINE風チャットUI -->
+      <div class="bg-[#8C9DAE] p-3 rounded-2xl space-y-3 min-h-[220px]">
+        <div class="text-center">
+          <span class="px-2 py-0.5 rounded-full bg-black/20 text-white text-[10px] font-semibold">今日</span>
+        </div>
+        <div class="flex gap-2 items-start">
+          <div class="w-8 h-8 rounded-full bg-red-500 text-white flex items-center justify-center text-sm flex-shrink-0 shadow">📮</div>
+          <div class="space-y-1 max-w-[80%]">
+            <span class="text-[10px] text-white/90 font-bold ml-1">おたよりポスト Bot</span>
+            <div id="linePreviewBubble" class="line-bubble-left text-xs whitespace-pre-wrap">
+              通知内容を生成中...
+            </div>
+            <span id="lineTimeDisplay" class="text-[9px] text-white/70 block ml-1">18:00</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="space-y-2">
+        <button onclick="triggerSimulatedLineNotification()" class="w-full py-2.5 rounded-xl bg-[#06C755] hover:bg-[#05b34c] text-white font-bold text-xs flex items-center justify-center gap-1.5 transition">
+          <i data-lucide="bell-ring" class="w-4 h-4"></i>
+          <span>テスト通知を再生成</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. 設定モーダル（Gemini APIキー・ユーザー名） -->
+  <div id="settingsModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay animate-pop">
+    <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b pb-3 border-stone-100">
+        <h3 class="font-extrabold text-stone-800 text-base">設定</h3>
+        <button onclick="closeModal('settingsModal')" class="p-1 text-stone-400 hover:text-stone-700">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="settingsForm" onsubmit="saveSettings(event)" class="space-y-3.5 text-xs">
+        <div>
+          <label class="font-bold text-stone-700 block mb-1">保護者のお名前</label>
+          <input type="text" id="settingUserName" class="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl">
+        </div>
+
+        <div>
+          <label class="font-bold text-stone-700 block mb-1">Google Gemini API Key (任意)</label>
+          <input type="password" id="settingApiKey" placeholder="AI Studioのキーを入力 (未設定でもデモ解析が動作)" class="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl font-mono text-xs">
+          <p class="text-[10px] text-stone-400 mt-1">※ 設定すると独自の英語プリント画像を高精度AIで自動翻訳・解析できます。</p>
+        </div>
+
+        <div>
+          <label class="font-bold text-stone-700 block mb-1">毎日のLINE通知時刻</label>
+          <input type="time" id="settingNotifyTime" value="18:00" class="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl">
+        </div>
+
+        <button type="submit" class="w-full py-3 rounded-xl bg-stone-900 text-white font-bold text-xs hover:bg-stone-800 transition">
+          設定を保存する
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- JavaScript ロジック -->
+  <script src="/static/app.js"></script>
+</body>
+</html>

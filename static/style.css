@@ -1,0 +1,195 @@
+/* おたよりポスト スタイル定義 */
+@import url('https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700;900&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
+
+:root {
+  --primary-post: #E53935;
+  --primary-light: #FFEBEE;
+  --accent-green: #2E7D32;
+  --accent-green-light: #E8F5E9;
+  --bg-warm: #FAF8F5;
+  --card-bg: #FFFFFF;
+  --text-main: #2D3748;
+  --text-muted: #718096;
+  --border-color: #EDE8E1;
+  --tag-yellow: #FEF3C7;
+  --tag-yellow-text: #92400E;
+  --tag-blue: #E0F2FE;
+  --tag-blue-text: #0369A1;
+  --tag-red: #FEE2E2;
+  --tag-red-text: #991B1B;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Zen Maru Gothic', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: var(--bg-warm);
+  color: var(--text-main);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* スマホモックアップ用のコンテナ */
+.app-container {
+  max-width: 520px;
+  min-height: 100vh;
+  margin: 0 auto;
+  background-color: #FAF8F5;
+  position: relative;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+}
+
+@media (min-width: 768px) {
+  body.device-frame-mode {
+    background-color: #F1ECE4;
+    padding: 24px 0;
+  }
+  body.device-frame-mode .app-container {
+    border-radius: 36px;
+    border: 8px solid #1E293B;
+    min-height: 860px;
+    height: 92vh;
+    overflow-y: auto;
+  }
+}
+
+/* アニメーション */
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-pop {
+  animation: popIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* カード共通 */
+.otayori-card {
+  background: #FFFFFF;
+  border-radius: 20px;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.otayori-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+}
+
+/* カレンダー日付バッジ */
+.date-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 54px;
+  border-radius: 12px;
+  background: #F0F7FF;
+  border: 1.5px solid #BAE6FD;
+  color: #0284C7;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.date-badge .day {
+  font-size: 1.25rem;
+  line-height: 1;
+  font-weight: 800;
+}
+
+.date-badge .month {
+  font-size: 0.65rem;
+  letter-spacing: -0.5px;
+}
+
+/* 持ち物タグ */
+.item-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 8px;
+  background-color: #FEF3C7;
+  color: #92400E;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* フローティングポストボタン */
+.fab-post-btn {
+  position: fixed;
+  bottom: 24px;
+  right: calc(50% - 240px);
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 24px rgba(239, 68, 68, 0.4);
+  z-index: 40;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+}
+
+.fab-post-btn:hover {
+  transform: scale(1.08) rotate(5deg);
+  box-shadow: 0 12px 28px rgba(239, 68, 68, 0.5);
+}
+
+.fab-post-btn:active {
+  transform: scale(0.95);
+}
+
+@media (max-width: 540px) {
+  .fab-post-btn {
+    right: 20px;
+  }
+}
+
+/* LINE吹き出し風UI */
+.line-bubble-left {
+  position: relative;
+  background: #FFFFFF;
+  border-radius: 16px;
+  border-top-left-radius: 4px;
+  padding: 12px 16px;
+  color: #111;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* モーダル背景 */
+.modal-overlay {
+  background-color: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(4px);
+}
+
+/* カスタムスクロールバー */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
