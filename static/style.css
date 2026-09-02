@@ -19,40 +19,35 @@
   --tag-red-text: #991B1B;
 }
 
-* {
-  box-sizing: border-box;
-}
-
-body {
+html, body {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
   font-family: 'Zen Maru Gothic', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-  background-color: var(--bg-warm);
+  background-color: #F3EFEA;
   color: var(--text-main);
   -webkit-tap-highlight-color: transparent;
 }
 
-/* スマホモックアップ用のコンテナ */
+/* スマホ表示コンテナ（スマホでは100%全幅フィット、PCでは中央寄せ） */
 .app-container {
-  max-width: 520px;
+  width: 100%;
+  max-width: 460px;
   min-height: 100vh;
   margin: 0 auto;
   background-color: #FAF8F5;
   position: relative;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.06);
+  overflow-x: hidden;
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.05);
   display: flex;
   flex-direction: column;
 }
 
-@media (min-width: 768px) {
-  body.device-frame-mode {
-    background-color: #F1ECE4;
-    padding: 24px 0;
-  }
-  body.device-frame-mode .app-container {
-    border-radius: 36px;
-    border: 8px solid #1E293B;
-    min-height: 860px;
-    height: 92vh;
-    overflow-y: auto;
+@media (max-width: 480px) {
+  .app-container {
+    max-width: 100%;
+    box-shadow: none;
   }
 }
 

@@ -818,14 +818,8 @@ function notifyViaLine() {
 }
 
 function shareDirectToLine() {
-  let msg = currentLineMessageText;
-  if (!msg && activePostDetail) {
-    msg = formatFairviewLineMessage(activePostDetail);
-  }
-  if (!msg) {
-    msg = 'Fairview  school info📢\n🌟 重要な予定';
-  }
-
+  const target = activePostDetail || (currentPosts && currentPosts.length > 0 ? currentPosts[0] : null);
+  const msg = formatFairviewLineMessage(target);
   const lineShareUrl = `https://line.me/R/msg/text/?${encodeURIComponent(msg)}`;
   window.open(lineShareUrl, '_blank');
 }
