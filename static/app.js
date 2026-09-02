@@ -7,22 +7,34 @@ let currentDraftData = null;
 let activePostDetail = null;
 
 // --- 初期化 ---
-document.addEventListener('DOMContentLoaded', () => {
+function initApp() {
   if (window.lucide) {
-    lucide.createIcons();
+    try { lucide.createIcons(); } catch(e) {}
   }
   loadSettings();
   loadAllData();
-});
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initApp);
+} else {
+  initApp();
+}
 
 // --- データ読み込み ---
 async function loadAllData() {
-  await Promise.all([
-    loadPosts(),
-    loadUpcoming(),
-    loadDeadlines()
-  ]);
-  if (window.lucide) lucide.createIcons();
+  try {
+    await Promise.allSettled([
+      loadPosts(),
+      loadUpcoming(),
+      loadDeadlines()
+    ]);
+  } catch (err) {
+    console.error('loadAllData error:', err);
+  }
+  if (window.lucide) {
+    try { lucide.createIcons(); } catch(e) {}
+  }
 }
 
 async function loadPosts(query = '') {
