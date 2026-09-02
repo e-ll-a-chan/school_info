@@ -1,14 +1,9 @@
 @echo off
-chcp 65001 >nul
-title おたよりポスト (Otayori Post)
-echo ========================================================
-echo   おたよりポスト (Otayori Post) を起動しています...
-echo   英語プリント  日本語翻訳 ＆ 予定・持ち物管理
-echo ========================================================
-echo.
-echo 自動的に空きポートを検出してブラウザを開きます...
-echo 終了するときは この黒いウィンドウを閉じてください。
-echo.
-
+cd /d "%~dp0"
+echo Starting Otayori Post Server...
 python main.py
-pause
+if %ERRORLEVEL% NEQ 0 (
+    echo.
+    echo Server stopped with error code %ERRORLEVEL%
+    pause
+)
