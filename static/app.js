@@ -1129,9 +1129,7 @@ function openSettingsModal() {
 function openModal(id) {
   const modal = document.getElementById(id);
   if (modal) {
-    modal.classList.remove('hidden');
-    modal.style.display = 'flex';
-    modal.style.zIndex = '999';
+    modal.classList.add('is-open');
     if (window.lucide) {
       try { lucide.createIcons(); } catch (e) {}
     }
@@ -1141,8 +1139,7 @@ function openModal(id) {
 function closeModal(id) {
   const modal = document.getElementById(id);
   if (modal) {
-    modal.classList.add('hidden');
-    modal.style.display = 'none';
+    modal.classList.remove('is-open');
   }
 }
 

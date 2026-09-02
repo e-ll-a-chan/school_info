@@ -126,7 +126,7 @@
   <!-- ================= モーダル群 ================= -->
 
   <!-- 1. アップロード・撮影モーダル -->
-  <div id="uploadModal" class="hidden fixed inset-0 z-[9999] flex items-center justify-center p-4 modal-overlay animate-pop" onclick="if(event.target === this) closeModal('uploadModal')">
+  <div id="uploadModal" class="app-modal" onclick="if(event.target === this) closeModal('uploadModal')">
     <div class="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
       <div class="flex items-center justify-between border-b pb-3 border-stone-100">
         <div class="flex items-center gap-2">
@@ -178,7 +178,7 @@
   </div>
 
   <!-- 2. AI読取・下書き確認＆編集エディタモーダル -->
-  <div id="draftModal" class="hidden fixed inset-0 z-[9999] flex items-center justify-center p-4 modal-overlay animate-pop" onclick="if(event.target === this) closeModal('draftModal')">
+  <div id="draftModal" class="app-modal" onclick="if(event.target === this) closeModal('draftModal')">
     <div class="bg-white w-full max-w-lg rounded-3xl p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto">
       
       <!-- ヘッダー -->
@@ -367,7 +367,7 @@
   </div>
 
   <!-- 3. おたより詳細モーダル -->
-  <div id="detailModal" class="hidden fixed inset-0 z-[9999] flex items-center justify-center p-4 modal-overlay animate-pop" onclick="if(event.target === this) closeModal('detailModal')">
+  <div id="detailModal" class="app-modal" onclick="if(event.target === this) closeModal('detailModal')">
     <div class="bg-white w-full max-w-lg rounded-3xl p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto">
       <div class="flex items-center justify-between border-b pb-3 border-stone-100">
         <div class="flex items-center gap-2 flex-wrap">
@@ -472,7 +472,7 @@
   </div>
 
   <!-- 4. LINE通知シミュレーター / 設定モーダル -->
-  <div id="lineModal" class="hidden fixed inset-0 z-[9999] flex items-center justify-center p-4 modal-overlay animate-pop" onclick="if(event.target === this) closeModal('lineModal')">
+  <div id="lineModal" class="app-modal" onclick="if(event.target === this) closeModal('lineModal')">
     <div class="bg-white w-full max-w-sm rounded-3xl p-5 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
       <div class="flex items-center justify-between border-b pb-2 border-stone-100">
         <div class="flex items-center gap-2">
@@ -517,7 +517,7 @@
   </div>
 
   <!-- 5. 設定モーダル（Gemini APIキー・ユーザー名） -->
-  <div id="settingsModal" class="hidden fixed inset-0 z-[9999] flex items-center justify-center p-4 modal-overlay animate-pop" onclick="if(event.target === this) closeModal('settingsModal')">
+  <div id="settingsModal" class="app-modal" onclick="if(event.target === this) closeModal('settingsModal')">
     <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl space-y-4">
       <div class="flex items-center justify-between border-b pb-3 border-stone-100">
         <h3 class="font-extrabold text-stone-800 text-base">設定</h3>
@@ -551,6 +551,6 @@
   </div>
 
   <!-- JavaScript ロジック (キャッシュバスター付き) -->
-  <script src="/static/app.js?v=20260902_1409"></script>
+  <script src="/static/app.js?v=20260902_1411"></script>
 </body>
 </html>
