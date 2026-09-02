@@ -57,7 +57,7 @@
       <!-- 検索バー（日英全文検索） -->
       <div class="relative">
         <i data-lucide="search" class="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
-        <input type="text" id="searchInput" placeholder="持ち物・行事・英語で検索 (例: 水筒, lunch, slip)..."
+        <input type="text" id="searchInput" placeholder="🔍 持ち物・行事・英語で検索 (例: 水筒, lunch, slip)..."
                class="w-full pl-10 pr-9 py-2.5 bg-white border border-stone-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-red-400/40 focus:border-red-500 transition shadow-sm"
                oninput="handleSearch()">
         <button id="clearSearchBtn" onclick="clearSearch()" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600">
@@ -69,8 +69,7 @@
       <section id="deadlineSection" class="hidden">
         <div class="flex items-center justify-between mb-2">
           <div class="flex items-center gap-1.5 text-xs font-bold text-red-600 uppercase tracking-wider">
-            <i data-lucide="alert-circle" class="w-4 h-4"></i>
-            <span>提出物・締切アラート</span>
+            <span>⚠️ 提出物・締切アラート</span>
           </div>
           <span id="deadlineCount" class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700">0件</span>
         </div>
@@ -83,11 +82,10 @@
       <section>
         <div class="flex items-center justify-between mb-2.5">
           <div class="flex items-center gap-1.5 text-xs font-bold text-stone-700 uppercase tracking-wider">
-            <i data-lucide="calendar-days" class="w-4 h-4 text-sky-600"></i>
-            <span>直近の予定 &amp; 持ち物</span>
+            <span>📅 直近の予定 ＆ 🎒 持ち物</span>
           </div>
           <a href="/api/calendar.ics" class="text-xs text-sky-600 font-bold hover:underline flex items-center gap-0.5">
-            <span>カレンダー連携</span>
+            <span>🗓️ カレンダー連携</span>
             <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
           </a>
         </div>
@@ -101,8 +99,7 @@
       <section>
         <div class="flex items-center justify-between mb-3">
           <div class="flex items-center gap-1.5 text-xs font-bold text-stone-700 uppercase tracking-wider">
-            <i data-lucide="file-text" class="w-4 h-4 text-amber-600"></i>
-            <span>届いたおたより一覧</span>
+            <span>📑 届いたおたより一覧</span>
           </div>
           <span id="postsCount" class="text-xs text-stone-400 font-semibold">0件</span>
         </div>
@@ -501,6 +498,6 @@
   </div>
 
   <!-- JavaScript ロジック (キャッシュバスター付き) -->
-  <script src="/static/app.js?v=20260902_1317"></script>
+  <script src="/static/app.js?v=20260902_1323"></script>
 </body>
 </html>

@@ -205,17 +205,26 @@ function renderPosts(posts) {
   container.innerHTML = posts.map(p => {
     const tagsHtml = (p.tags || []).map(t => {
       let colorClass = 'bg-stone-100 text-stone-600';
-      if (t.includes('英語') || t.includes('UOI')) colorClass = 'bg-blue-100 text-blue-800';
-      else if (t.includes('中国語')) colorClass = 'bg-red-100 text-red-800';
-      else if (t.includes('アート')) colorClass = 'bg-purple-100 text-purple-800';
-      else if (t.includes('Music') || t.includes('音楽')) colorClass = 'bg-pink-100 text-pink-800';
-      else if (t.includes('学校行事') || t.includes('行事') || t.includes('遠足')) colorClass = 'bg-emerald-100 text-emerald-800';
-      else if (t.includes('提出物')) colorClass = 'bg-amber-100 text-amber-800';
-      return `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold ${colorClass}">${escapeHtml(t)}</span>`;
+      let icon = '🏷️';
+      if (t.includes('英語') || t.includes('UOI')) { colorClass = 'bg-blue-100 text-blue-800'; icon = '📚'; }
+      else if (t.includes('中国語')) { colorClass = 'bg-red-100 text-red-800'; icon = '🀄'; }
+      else if (t.includes('アート')) { colorClass = 'bg-purple-100 text-purple-800'; icon = '🎨'; }
+      else if (t.includes('Music') || t.includes('音楽')) { colorClass = 'bg-pink-100 text-pink-800'; icon = '🎵'; }
+      else if (t.includes('体育') || t.includes('PE')) { colorClass = 'bg-orange-100 text-orange-800'; icon = '⚽'; }
+      else if (t.includes('学校行事') || t.includes('行事') || t.includes('遠足')) { colorClass = 'bg-emerald-100 text-emerald-800'; icon = '🏫'; }
+      else if (t.includes('提出物')) { colorClass = 'bg-amber-100 text-amber-800'; icon = '⚠️'; }
+      return `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold ${colorClass}">${icon} ${escapeHtml(t)}</span>`;
     }).join('');
 
-    const formattedDate = p.date ? p.date.replace(/-/g, '/') : '随時';
+    const formattedDate = p.date ? `📅 ${p.date.replace(/-/g, '/')}` : '📅 随時';
     const previewImg = p.image_url || '/static/samples/no_image.svg';
+
+    const itemsBadge = (p.items && p.items.length > 0)
+      ? `<span class="text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded font-bold">🎒 持ち物 ${p.items.length}点</span>`
+      : '';
+    const deadlineBadge = p.deadline
+      ? `<span class="text-red-700 bg-red-50 px-1.5 py-0.5 rounded font-bold">⚠️ 締切: ${p.deadline.replace(/-/g, '/')}</span>`
+      : '';
 
     return `
       <div class="otayori-card p-3.5 flex gap-3.5 cursor-pointer hover:border-amber-300 transition" onclick="openDetailModal('${p.id}')">
@@ -240,9 +249,12 @@ function renderPosts(posts) {
           </p>
 
           <div class="flex items-center justify-between mt-2 pt-1.5 border-t border-stone-100 text-[10px]">
-            <span class="text-stone-400 font-medium truncate max-w-[160px]">🎒 持ち物: ${(p.items || []).length}件</span>
-            <span class="text-emerald-700 font-bold flex items-center gap-0.5">
-              <span>詳細・原文</span>
+            <div class="flex items-center gap-1.5 truncate max-w-[190px]">
+              ${itemsBadge}
+              ${deadlineBadge}
+            </div>
+            <span class="text-emerald-700 font-bold flex items-center gap-0.5 flex-shrink-0">
+              <span>詳細</span>
               <i data-lucide="chevron-right" class="w-3 h-3"></i>
             </span>
           </div>
