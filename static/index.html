@@ -15,7 +15,7 @@
   <link rel="manifest" href="/static/manifest.json">
   <meta name="theme-color" content="#EF4444">
 </head>
-<body class="device-frame-mode antialiased select-none sm:select-auto">
+<body class="antialiased select-none sm:select-auto bg-stone-100 flex justify-center min-h-screen">
 
   <!-- メインアプリコンテナ -->
   <div class="app-container" id="app">
@@ -36,8 +36,12 @@
       </div>
       
       <div class="flex items-center gap-1.5">
+        <!-- 🔄 更新ボタン -->
+        <button onclick="refreshAllData()" id="headerRefreshBtn" title="最新データを再読み込み" class="p-2 rounded-xl text-stone-600 hover:bg-stone-100 active:scale-95 transition">
+          <i data-lucide="rotate-cw" class="w-5 h-5 text-amber-600"></i>
+        </button>
         <!-- LINE通知ボタン -->
-        <button onclick="openLineModal()" title="LINE通知テスト" class="p-2 rounded-xl text-stone-600 hover:bg-stone-100 active:scale-95 transition">
+        <button onclick="openLineModal()" title="LINE通知プレビュー" class="p-2 rounded-xl text-stone-600 hover:bg-stone-100 active:scale-95 transition">
           <i data-lucide="message-circle" class="w-5 h-5 text-emerald-600"></i>
         </button>
         <!-- iCal一括ダウンロード -->
@@ -126,12 +130,6 @@
     <!-- フローティング「＋ おたよりをポスト」ボタン -->
     <button onclick="openUploadModal()" class="fab-post-btn" title="新しい英語プリントを追加">
       <i data-lucide="plus" class="w-8 h-8 stroke-[2.5]"></i>
-    </button>
-
-    <!-- デバイス枠切り替えボタン（画面右下） -->
-    <button onclick="toggleDeviceFrame()" id="frameToggleBtn" class="fixed bottom-4 left-4 z-20 px-3 py-1.5 rounded-xl bg-stone-900/80 hover:bg-stone-900 text-white text-xs font-semibold backdrop-blur shadow-lg transition flex items-center gap-1.5">
-      <i data-lucide="smartphone" class="w-3.5 h-3.5"></i>
-      <span id="frameToggleText">枠あり</span>
     </button>
 
   </div>
@@ -498,6 +496,6 @@
   </div>
 
   <!-- JavaScript ロジック (キャッシュバスター付き) -->
-  <script src="/static/app.js?v=20260902_1323"></script>
+  <script src="/static/app.js?v=20260902_1325"></script>
 </body>
 </html>

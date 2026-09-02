@@ -730,14 +730,58 @@ async function openLineModal(postId = null) {
   showLineNotification(targetId);
 }
 
+function formatFairviewLineMessage(post) {
+  if (!post) return 'Fairview  school info📢\n🌟 重要な予定';
+
+  const title = post.title || '学校からのお知らせ';
+  const dateStr = post.date || '';
+  const timeStart = post.time_start || '';
+  const timeEnd = post.time_end || '';
+  const location = post.location || '';
+  const items = post.items || [];
+  const deadline = post.deadline || '';
+  const deadlineDesc = post.deadline_description || '';
+  const summary = post.summary || '';
+
+  const lines = [
+    'Fairview  school info📢',
+    '🌟 重要な予定',
+    `📌「${title}」`
+  ];
+
+  const details = [];
+  if (dateStr) {
+    const tStr = (timeStart && timeEnd) ? ` ⏰ ${timeStart}〜${timeEnd}` : (timeStart ? ` ⏰ ${timeStart}` : '');
+    details.push(`📅 日程: ${dateStr.replace(/-/g, '/')}${tStr}`);
+  }
+  if (location && !location.includes('学校')) {
+    details.push(`📍 場所: ${location}`);
+  }
+  if (items && items.length > 0) {
+    details.push(`🎒 持ち物: ${items.join('、')}`);
+  }
+  if (deadline) {
+    details.push(`⚠️ 提出締切: ${deadline.replace(/-/g, '/')} (${deadlineDesc || '提出用紙'})`);
+  }
+
+  if (details.length > 0) {
+    lines.push('');
+    lines.push(...details);
+  }
+
+  lines.push('');
+  lines.push('📝「本文」');
+  lines.push(summary);
+
+  return lines.join('\n');
+}
+
 let currentLineMessageText = '';
 
 async function showLineNotification(postId) {
   const target = activePostDetail || (currentPosts && currentPosts.length > 0 ? currentPosts[0] : null);
   if (target) {
-    const title = target.title || '';
-    const summary = target.summary || '';
-    currentLineMessageText = `Fairview  school info📢\n重要な予定\n「${title}」\n「${summary}」`;
+    currentLineMessageText = formatFairviewLineMessage(target);
     const bubble = document.getElementById('linePreviewBubble');
     if (bubble) bubble.innerText = currentLineMessageText;
   }
@@ -776,16 +820,28 @@ function notifyViaLine() {
 function shareDirectToLine() {
   let msg = currentLineMessageText;
   if (!msg && activePostDetail) {
-    const title = activePostDetail.title || '';
-    const summary = activePostDetail.summary || '';
-    msg = `Fairview  school info📢\n重要な予定\n「${title}」\n「${summary}」`;
+    msg = formatFairviewLineMessage(activePostDetail);
   }
   if (!msg) {
-    msg = "Fairview  school info📢\n重要な予定";
+    msg = 'Fairview  school info📢\n🌟 重要な予定';
   }
 
   const lineShareUrl = `https://line.me/R/msg/text/?${encodeURIComponent(msg)}`;
   window.open(lineShareUrl, '_blank');
+}
+
+// --- 🔄 全データ更新 ---
+async function refreshAllData() {
+  const btn = document.getElementById('headerRefreshBtn');
+  if (btn) btn.classList.add('animate-spin');
+  showNotificationToast('🔄 最新データを読み込み中...');
+  
+  await loadAllData();
+  
+  setTimeout(() => {
+    if (btn) btn.classList.remove('animate-spin');
+    showNotificationToast('✨ データを最新に更新しました！');
+  }, 400);
 }
 
 function copyLineMessage() {

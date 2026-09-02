@@ -264,10 +264,48 @@ def export_calendar(post_id: Optional[str] = None):
         headers={"Content-Disposition": "attachment; filename=otayori_events.ics"}
     )
 
+def _format_fairview_line_message(post: dict) -> str:
+    title = post.get("title", "学校からのお知らせ")
+    date_str = post.get("date", "")
+    time_start = post.get("time_start", "")
+    time_end = post.get("time_end", "")
+    location = post.get("location", "")
+    items = post.get("items", [])
+    deadline = post.get("deadline", "")
+    deadline_desc = post.get("deadline_description", "")
+    summary = post.get("summary", "")
+
+    lines = [
+        "Fairview  school info📢",
+        "🌟 重要な予定",
+        f"📌「{title}」"
+    ]
+
+    details = []
+    if date_str:
+        t_str = f" ⏰ {time_start}〜{time_end}" if (time_start and time_end) else (f" ⏰ {time_start}" if time_start else "")
+        details.append(f"📅 日程: {date_str.replace('-', '/')}{t_str}")
+    if location and "学校" not in location:
+        details.append(f"📍 場所: {location}")
+    if items:
+        details.append(f"🎒 持ち物: {'、'.join(items)}")
+    if deadline:
+        details.append(f"⚠️ 提出締切: {deadline.replace('-', '/')} ({deadline_desc or '提出用紙'})")
+
+    if details:
+        lines.append("")
+        lines.extend(details)
+
+    lines.append("")
+    lines.append("📝「本文」")
+    lines.append(f"{summary}")
+
+    return "\n".join(lines)
+
 @app.post("/api/line/notify")
 def send_line_notification(req: LineNotifyRequest):
     """
-    LINE通知シミュレーターおよび実送信 (Fairview school info形式)
+    LINE通知シミュレーターおよび実送信 (絵文字リッチなFairview school info形式)
     """
     if req.custom_message:
         message = req.custom_message
@@ -275,19 +313,13 @@ def send_line_notification(req: LineNotifyRequest):
         post = db.get_post_by_id(req.post_id)
         if not post:
             raise HTTPException(status_code=404, detail="おたよりが見つかりません")
-        
-        title = post.get("title", "")
-        summary = post.get("summary", "")
-        message = f"Fairview  school info📢\n重要な予定\n「{title}」\n「{summary}」"
+        message = _format_fairview_line_message(post)
     else:
         upcoming = db.get_upcoming_events(limit=1)
         if upcoming:
-            p = upcoming[0]
-            title = p.get("title", "")
-            summary = p.get("summary", "")
-            message = f"Fairview  school info📢\n重要な予定\n「{title}」\n「{summary}」"
+            message = _format_fairview_line_message(upcoming[0])
         else:
-            message = "Fairview  school info📢\n重要な予定\n「現在、特別な予定はありません」\n「詳細はおたより一覧をご確認ください」"
+            message = "Fairview  school info📢\n🌟 重要な予定\n📌「現在、特別な予定はありません」\n\n📝「本文」\n本日届いている緊急のおたよりはありません。良い一日を！😊✨"
 
     return {
         "status": "success",
