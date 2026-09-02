@@ -721,6 +721,15 @@ async function openLineModal(postId = null) {
 let currentLineMessageText = '';
 
 async function showLineNotification(postId) {
+  const target = activePostDetail || (currentPosts && currentPosts.length > 0 ? currentPosts[0] : null);
+  if (target) {
+    const title = target.title || '';
+    const summary = target.summary || '';
+    currentLineMessageText = `Fairview  school info📢\n重要な予定\n「${title}」\n「${summary}」`;
+    const bubble = document.getElementById('linePreviewBubble');
+    if (bubble) bubble.innerText = currentLineMessageText;
+  }
+
   try {
     const res = await fetch('/api/line/notify', {
       method: 'POST',
@@ -728,11 +737,15 @@ async function showLineNotification(postId) {
       body: JSON.stringify({ post_id: postId })
     });
     const data = await res.json();
-    currentLineMessageText = data.message;
-    document.getElementById('linePreviewBubble').innerText = data.message;
-    document.getElementById('lineTimeDisplay').innerText = data.sent_at || '18:00';
+    if (data.message) {
+      currentLineMessageText = data.message;
+      const bubble = document.getElementById('linePreviewBubble');
+      if (bubble) bubble.innerText = data.message;
+    }
+    const timeEl = document.getElementById('lineTimeDisplay');
+    if (timeEl) timeEl.innerText = data.sent_at || '18:00';
   } catch (err) {
-    document.getElementById('linePreviewBubble').innerText = '通知の生成に失敗しました';
+    console.log('LINE notify api fetch fallback:', err);
   }
 }
 
