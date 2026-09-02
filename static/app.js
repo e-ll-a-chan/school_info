@@ -1130,7 +1130,13 @@ function openModal(id) {
   const modal = document.getElementById(id);
   if (modal) {
     modal.classList.remove('hidden');
-    if (window.lucide) lucide.createIcons();
+    modal.style.setProperty('display', 'flex', 'important');
+    modal.style.setProperty('z-index', '99999', 'important');
+    modal.style.setProperty('visibility', 'visible', 'important');
+    modal.style.setProperty('opacity', '1', 'important');
+    if (window.lucide) {
+      try { lucide.createIcons(); } catch (e) {}
+    }
   }
 }
 
@@ -1138,6 +1144,7 @@ function closeModal(id) {
   const modal = document.getElementById(id);
   if (modal) {
     modal.classList.add('hidden');
+    modal.style.setProperty('display', 'none', 'important');
   }
 }
 
@@ -1199,3 +1206,26 @@ function escapeHtml(str) {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
 }
+
+// 全ての主要関数をグローバル window オブジェクトに明示的アタッチ
+window.openDetailModal = openDetailModal;
+window.openModal = openModal;
+window.closeModal = closeModal;
+window.editCurrentPost = editCurrentPost;
+window.deleteCurrentPost = deleteCurrentPost;
+window.filterByTag = filterByTag;
+window.openUploadModal = openUploadModal;
+window.openDraftModal = openDraftModal;
+window.saveDraftPost = saveDraftPost;
+window.notifyViaLine = notifyViaLine;
+window.shareDirectToLine = shareDirectToLine;
+window.copyLineMessage = copyLineMessage;
+window.saveSettings = saveSettings;
+window.openSettingsModal = openSettingsModal;
+window.refreshAllData = refreshAllData;
+window.handleDraftImageUpload = handleDraftImageUpload;
+window.removeDraftImage = removeDraftImage;
+window.submitAnalyze = submitAnalyze;
+window.handleFileSelected = handleFileSelected;
+window.toggleSubmission = toggleSubmission;
+window.addToGoogleCalendar = addToGoogleCalendar;
