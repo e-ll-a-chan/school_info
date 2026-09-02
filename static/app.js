@@ -403,21 +403,55 @@ async function submitAnalyze() {
   }
 }
 
-// --- 下書き確認モーダル（AIを過信しない設計） ---
-function openDraftModal(draft) {
-  currentDraftData = draft;
+// --- 下書き確認・編集モーダル ---
+let isEditingMode = false;
+const AVAILABLE_TAGS = ['英語・UOI', '中国語', 'アート', 'Music', '体育・PE', '学校行事', '提出物あり'];
+
+function openDraftModal(draft, isEditing = false) {
+  currentDraftData = Object.assign({}, draft);
+  isEditingMode = isEditing;
+
+  // モーダルタイトル & ボタン
+  document.getElementById('draftModalTitle').innerText = isEditing ? 'おたよりの編集' : 'AI読取 ＆ 翻訳完了（確認・編集）';
+  document.getElementById('draftSubmitBtnText').innerText = isEditing ? '変更を保存する' : 'この内容でおたよりを登録';
 
   document.getElementById('draftTitle').value = draft.title || '';
   document.getElementById('draftTitleEn').value = draft.title_en || '';
+  document.getElementById('draftSummary').value = draft.summary || '';
+  document.getElementById('draftSourceText').value = draft.source_text || '';
+
+  // タグ選択ボタングループ生成
+  currentDraftData.tags = currentDraftData.tags || [];
+  renderDraftTagButtons();
+
+  // 日時・場所
   document.getElementById('draftDate').value = draft.date || '';
   document.getElementById('draftLocation').value = draft.location || '';
   document.getElementById('draftTimeStart').value = draft.time_start || '';
   document.getElementById('draftTimeEnd').value = draft.time_end || '';
+  
+  const dateTimeDetails = document.getElementById('draftDateTimeDetails');
+  if (dateTimeDetails) {
+    dateTimeDetails.open = Boolean(draft.date || draft.location || draft.time_start);
+  }
+
+  // 締切
   document.getElementById('draftDeadline').value = draft.deadline || '';
   document.getElementById('draftDeadlineDesc').value = draft.deadline_description || '';
-  document.getElementById('draftSummary').value = draft.summary || '';
-  document.getElementById('draftSourceText').value = draft.source_text || '';
+  const deadlineDetails = document.getElementById('draftDeadlineDetails');
+  if (deadlineDetails) {
+    deadlineDetails.open = Boolean(draft.deadline);
+  }
 
+  // 持ち物
+  currentDraftData.items = currentDraftData.items || [];
+  renderDraftItems(currentDraftData.items);
+  const itemsDetails = document.getElementById('draftItemsDetails');
+  if (itemsDetails) {
+    itemsDetails.open = (currentDraftData.items.length > 0);
+  }
+
+  // 画像プレビュー
   const imgContainer = document.getElementById('draftImageContainer');
   const imgPreview = document.getElementById('draftImagePreview');
   if (draft.image_url) {
@@ -427,18 +461,57 @@ function openDraftModal(draft) {
     imgContainer.classList.add('hidden');
   }
 
-  renderDraftItems(draft.items || []);
   openModal('draftModal');
+}
+
+function renderDraftTagButtons() {
+  const container = document.getElementById('draftTagsContainer');
+  if (!container) return;
+
+  container.innerHTML = AVAILABLE_TAGS.map(t => {
+    const isSelected = (currentDraftData.tags || []).includes(t);
+    let activeClass = isSelected 
+      ? 'bg-stone-900 text-white shadow-sm' 
+      : 'bg-stone-100 text-stone-600 hover:bg-stone-200';
+    return `
+      <button type="button" onclick="toggleDraftTag('${t}')" class="px-2.5 py-1 rounded-lg text-xs font-bold transition ${activeClass}">
+        ${isSelected ? '✓ ' : ''}${escapeHtml(t)}
+      </button>
+    `;
+  }).join('');
+}
+
+function toggleDraftTag(tag) {
+  if (!currentDraftData) return;
+  currentDraftData.tags = currentDraftData.tags || [];
+  const idx = currentDraftData.tags.indexOf(tag);
+  if (idx > -1) {
+    currentDraftData.tags.splice(idx, 1);
+  } else {
+    currentDraftData.tags.push(tag);
+  }
+  renderDraftTagButtons();
 }
 
 function renderDraftItems(items) {
   const container = document.getElementById('draftItemsContainer');
-  container.innerHTML = items.map((item, idx) => `
-    <span class="item-tag cursor-pointer hover:opacity-75 transition" onclick="removeDraftItem(${idx})" title="クリックして削除">
-      🎒 ${escapeHtml(item)}
-      <i data-lucide="x" class="w-3 h-3"></i>
-    </span>
-  `).join('');
+  const badge = document.getElementById('draftItemsBadge');
+
+  if (items.length > 0) {
+    if (badge) {
+      badge.innerText = `${items.length}件`;
+      badge.classList.remove('hidden');
+    }
+    container.innerHTML = items.map((item, idx) => `
+      <span class="item-tag cursor-pointer hover:opacity-75 transition" onclick="removeDraftItem(${idx})" title="クリックして削除">
+        🎒 ${escapeHtml(item)}
+        <i data-lucide="x" class="w-3 h-3"></i>
+      </span>
+    `).join('');
+  } else {
+    if (badge) badge.classList.add('hidden');
+    container.innerHTML = '<span class="text-[11px] text-stone-400 self-center">持ち物なし（下の入力欄から追加可能）</span>';
+  }
   if (window.lucide) lucide.createIcons();
 }
 
@@ -479,26 +552,40 @@ async function saveDraftPost(event) {
     summary_en: currentDraftData.summary_en || '',
     source_text: document.getElementById('draftSourceText').value.trim(),
     source_date_raw: currentDraftData.source_date_raw || '',
-    tags: currentDraftData.tags || ['行事'],
+    tags: currentDraftData.tags || ['学校連絡'],
     image_url: currentDraftData.image_url || null
   };
 
   try {
-    const res = await fetch('/api/posts', {
-      method: 'POST',
+    let url = '/api/posts';
+    let method = 'POST';
+
+    if (isEditingMode && currentDraftData && currentDraftData.id) {
+      url = `/api/posts/${currentDraftData.id}`;
+      method = 'PUT';
+    }
+
+    const res = await fetch(url, {
+      method: method,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(postData)
     });
     const result = await res.json();
     closeModal('draftModal');
-    showNotificationToast('📮 おたよりを登録しました！');
+    showNotificationToast(isEditingMode ? '✏️ おたよりを更新しました！' : '📮 おたよりを登録しました！');
     loadAllData();
   } catch (err) {
     alert('保存エラー: ' + err.message);
   }
 }
 
-// --- 詳細モーダル ---
+// --- 詳細モーダル ＆ 編集 ---
+function editCurrentPost() {
+  if (!activePostDetail) return;
+  closeModal('detailModal');
+  openDraftModal(activePostDetail, true);
+}
+
 async function openDetailModal(postId) {
   try {
     const res = await fetch(`/api/posts/${postId}`);
@@ -507,34 +594,58 @@ async function openDetailModal(postId) {
 
     document.getElementById('detailTitle').innerText = post.title;
     document.getElementById('detailTitleEn').innerText = post.title_en || '';
-    document.getElementById('detailDateDisplay').innerText = post.date ? `${post.date.replace(/-/g, '/')} 該当日` : '日程未定';
+    document.getElementById('detailDateDisplay').innerText = post.date ? `${post.date.replace(/-/g, '/')}` : '';
     
-    // 時間＆場所
-    const timeStr = (post.time_start && post.time_end) ? `${post.time_start} 〜 ${post.time_end}` : (post.time_start || '終日');
-    document.getElementById('detailTime').innerText = timeStr;
-    document.getElementById('detailLocation').innerText = post.location || '学校';
+    // タグバッジ群
+    const badgesContainer = document.getElementById('detailBadgesContainer');
+    if (badgesContainer) {
+      badgesContainer.innerHTML = (post.tags || []).map(t => {
+        let colorClass = 'bg-stone-100 text-stone-700';
+        if (t.includes('英語') || t.includes('UOI')) colorClass = 'bg-blue-100 text-blue-800';
+        else if (t.includes('中国語')) colorClass = 'bg-red-100 text-red-800';
+        else if (t.includes('アート')) colorClass = 'bg-purple-100 text-purple-800';
+        else if (t.includes('Music')) colorClass = 'bg-pink-100 text-pink-800';
+        else if (t.includes('学校行事') || t.includes('行事')) colorClass = 'bg-emerald-100 text-emerald-800';
+        else if (t.includes('提出物')) colorClass = 'bg-amber-100 text-amber-800';
+        return `<span class="px-2 py-0.5 rounded-full text-xs font-bold ${colorClass}">${escapeHtml(t)}</span>`;
+      }).join('');
+    }
 
-    // 締切
-    const deadlineRow = document.getElementById('detailDeadlineRow');
-    if (post.deadline) {
-      document.getElementById('detailDeadline').innerText = `${post.deadline.replace(/-/g, '/')} (${post.deadline_description || '提出'})`;
-      deadlineRow.classList.remove('hidden');
+    // 日時・場所カード
+    const dateTimeCard = document.getElementById('detailDateTimeCard');
+    const hasDateTime = Boolean(post.date || post.time_start || post.location || post.deadline);
+    if (hasDateTime) {
+      dateTimeCard.classList.remove('hidden');
+      const timeStr = (post.time_start && post.time_end) ? `${post.time_start} 〜 ${post.time_end}` : (post.time_start || '終日');
+      document.getElementById('detailTime').innerText = timeStr;
+      document.getElementById('detailLocation').innerText = post.location || '学校';
+
+      // 締切
+      const deadlineRow = document.getElementById('detailDeadlineRow');
+      if (post.deadline) {
+        document.getElementById('detailDeadline').innerText = `${post.deadline.replace(/-/g, '/')} (${post.deadline_description || '提出'})`;
+        deadlineRow.classList.remove('hidden');
+      } else {
+        deadlineRow.classList.add('hidden');
+      }
     } else {
-      deadlineRow.classList.add('hidden');
+      dateTimeCard.classList.add('hidden');
     }
 
     // 画像
     const imgEl = document.getElementById('detailImage');
     imgEl.src = post.image_url || '/static/samples/no_image.svg';
 
-    // 持ち物
+    // 持ち物（ある場合のみ表示）
+    const itemsSection = document.getElementById('detailItemsSection');
     const itemsContainer = document.getElementById('detailItems');
     if ((post.items || []).length > 0) {
+      itemsSection.classList.remove('hidden');
       itemsContainer.innerHTML = post.items.map(item => `
         <span class="item-tag text-xs px-2.5 py-1">🎒 ${escapeHtml(item)}</span>
       `).join('');
     } else {
-      itemsContainer.innerHTML = '<span class="text-stone-400 text-xs">特になし</span>';
+      itemsSection.classList.add('hidden');
     }
 
     // 要約 ＆ 原文

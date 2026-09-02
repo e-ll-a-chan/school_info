@@ -193,7 +193,7 @@
     </div>
   </div>
 
-  <!-- 2. AI読取・下書き確認エディタモーダル（AIを過信しない設計） -->
+  <!-- 2. AI読取・下書き確認＆編集エディタモーダル -->
   <div id="draftModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay animate-pop">
     <div class="bg-white w-full max-w-lg rounded-3xl p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto">
       
@@ -202,9 +202,9 @@
         <div>
           <div class="flex items-center gap-1.5 text-xs font-bold text-emerald-600">
             <i data-lucide="sparkles" class="w-4 h-4"></i>
-            <span>AI読取 ＆ 翻訳完了（下書き確認）</span>
+            <span id="draftModalTitle">AI読取 ＆ 翻訳完了（確認・編集）</span>
           </div>
-          <p class="text-xs text-stone-500">内容を確認・修正してカレンダーに登録できます</p>
+          <p class="text-xs text-stone-500">内容を確認・編集しておたよりを登録できます</p>
         </div>
         <button onclick="closeModal('draftModal')" class="p-1.5 text-stone-400 hover:text-stone-700 rounded-full hover:bg-stone-100">
           <i data-lucide="x" class="w-5 h-5"></i>
@@ -225,71 +225,21 @@
           <input type="text" id="draftTitleEn" placeholder="Original English Title" class="w-full p-2 text-xs bg-stone-100/70 border border-stone-200 rounded-xl text-stone-500">
         </div>
 
-        <!-- 日付・時間・場所 -->
-        <div class="grid grid-cols-2 gap-2">
-          <div>
-            <label class="text-xs font-bold text-stone-700">📅 行事予定日</label>
-            <input type="date" id="draftDate" class="w-full p-2 text-xs bg-stone-50 border border-stone-200 rounded-xl">
-          </div>
-          <div>
-            <label class="text-xs font-bold text-stone-700">📍 場所</label>
-            <input type="text" id="draftLocation" placeholder="学校 / 体育館 / 水族館" class="w-full p-2 text-xs bg-stone-50 border border-stone-200 rounded-xl">
+        <!-- 教科・分類タグ選択 -->
+        <div class="space-y-1">
+          <label class="text-xs font-bold text-stone-700">🏷️ 教科・カテゴリタグ</label>
+          <div id="draftTagsContainer" class="flex flex-wrap gap-1.5">
+            <!-- JSでトグル式タグボタン生成 -->
           </div>
         </div>
 
-        <div class="grid grid-cols-2 gap-2">
-          <div>
-            <label class="text-xs font-bold text-stone-700">⏰ 集合・開始時刻</label>
-            <input type="time" id="draftTimeStart" class="w-full p-2 text-xs bg-stone-50 border border-stone-200 rounded-xl">
-          </div>
-          <div>
-            <label class="text-xs font-bold text-stone-700">⏰ 下校・終了時刻</label>
-            <input type="time" id="draftTimeEnd" class="w-full p-2 text-xs bg-stone-50 border border-stone-200 rounded-xl">
-          </div>
-        </div>
-
-        <!-- ⚠️ 提出物・締切（ある場合） -->
-        <div class="p-3 rounded-2xl bg-red-50/70 border border-red-200 space-y-2">
-          <div class="flex items-center justify-between">
-            <label class="text-xs font-bold text-red-800 flex items-center gap-1">
-              <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i>
-              <span>提出物・参加同意書の締切</span>
-            </label>
-          </div>
-          <div class="grid grid-cols-2 gap-2">
-            <div>
-              <span class="text-[10px] text-red-600 font-semibold">締切日</span>
-              <input type="date" id="draftDeadline" class="w-full p-2 text-xs bg-white border border-red-200 rounded-xl text-red-700 font-bold">
-            </div>
-            <div>
-              <span class="text-[10px] text-red-600 font-semibold">提出内容</span>
-              <input type="text" id="draftDeadlineDesc" placeholder="参加同意書（Permission Slip）" class="w-full p-2 text-xs bg-white border border-red-200 rounded-xl">
-            </div>
-          </div>
-        </div>
-
-        <!-- 🎒 持ち物リスト（タグ追加・削除可能） -->
-        <div class="space-y-1.5">
-          <div class="flex items-center justify-between">
-            <label class="text-xs font-bold text-stone-700">🎒 持ち物チェックリスト</label>
-            <span class="text-[10px] text-stone-400">タップで削除</span>
-          </div>
-          <div id="draftItemsContainer" class="flex flex-wrap gap-1.5 min-h-[32px] p-2 bg-stone-50 border border-stone-200 rounded-xl">
-            <!-- 持ち物バッジ -->
-          </div>
-          <div class="flex gap-1.5">
-            <input type="text" id="newDraftItemInput" placeholder="持ち物を追加 (例: 水筒, お弁当)" class="flex-1 p-2 text-xs bg-stone-50 border border-stone-200 rounded-xl">
-            <button type="button" onclick="addDraftItem()" class="px-3 py-2 bg-stone-200 hover:bg-stone-300 rounded-xl text-xs font-bold text-stone-700">追加</button>
-          </div>
-        </div>
-
-        <!-- 日本語翻訳 & 英語原文の対照 -->
+        <!-- 日本語翻訳 & 英語原文の対照（メイン） -->
         <div class="space-y-2">
           <div>
             <label class="text-xs font-bold text-stone-700 flex items-center gap-1">
               <span>🇯🇵 日本語翻訳 ＆ 連絡事項:</span>
             </label>
-            <textarea id="draftSummary" rows="5" class="w-full p-2.5 text-xs bg-stone-50 border border-stone-200 rounded-xl leading-relaxed"></textarea>
+            <textarea id="draftSummary" rows="6" class="w-full p-2.5 text-xs bg-stone-50 border border-stone-200 rounded-xl leading-relaxed"></textarea>
           </div>
           <details class="text-xs">
             <summary class="font-bold text-stone-500 cursor-pointer hover:text-stone-800">🇺🇸 英語原文テキストを確認する</summary>
@@ -297,12 +247,83 @@
           </details>
         </div>
 
+        <!-- 📅 日時・場所（任意・折りたたみ） -->
+        <details class="text-xs border border-stone-200 rounded-2xl p-3 bg-stone-50/50" id="draftDateTimeDetails">
+          <summary class="font-bold text-stone-700 cursor-pointer hover:text-stone-900 flex items-center justify-between">
+            <span>📅 日時・場所を設定する (任意)</span>
+            <span class="text-[10px] text-stone-400 font-normal">タップして開閉</span>
+          </summary>
+          <div class="mt-3 space-y-2.5 pt-2 border-t border-stone-200/60">
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="text-[11px] font-semibold text-stone-600">予定日</label>
+                <input type="date" id="draftDate" class="w-full p-2 text-xs bg-white border border-stone-200 rounded-xl">
+              </div>
+              <div>
+                <label class="text-[11px] font-semibold text-stone-600">場所</label>
+                <input type="text" id="draftLocation" placeholder="学校 / 各教室" class="w-full p-2 text-xs bg-white border border-stone-200 rounded-xl">
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="text-[11px] font-semibold text-stone-600">開始・集合時刻</label>
+                <input type="time" id="draftTimeStart" class="w-full p-2 text-xs bg-white border border-stone-200 rounded-xl">
+              </div>
+              <div>
+                <label class="text-[11px] font-semibold text-stone-600">終了・下校時刻</label>
+                <input type="time" id="draftTimeEnd" class="w-full p-2 text-xs bg-white border border-stone-200 rounded-xl">
+              </div>
+            </div>
+          </div>
+        </details>
+
+        <!-- 🎒 持ち物チェックリスト（任意・折りたたみ） -->
+        <details class="text-xs border border-stone-200 rounded-2xl p-3 bg-stone-50/50" id="draftItemsDetails">
+          <summary class="font-bold text-stone-700 cursor-pointer hover:text-stone-900 flex items-center justify-between">
+            <span class="flex items-center gap-1">
+              <span>🎒 持ち物チェックリスト (任意)</span>
+              <span id="draftItemsBadge" class="hidden px-1.5 py-0.2 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold"></span>
+            </span>
+            <span class="text-[10px] text-stone-400 font-normal">タップして開閉</span>
+          </summary>
+          <div class="mt-3 space-y-2 pt-2 border-t border-stone-200/60">
+            <div id="draftItemsContainer" class="flex flex-wrap gap-1.5 min-h-[28px] p-2 bg-white border border-stone-200 rounded-xl">
+              <span class="text-[11px] text-stone-400 self-center">持ち物なし</span>
+            </div>
+            <div class="flex gap-1.5">
+              <input type="text" id="newDraftItemInput" placeholder="持ち物を追加 (例: 靴箱, エプロン, 色紙)" class="flex-1 p-2 text-xs bg-white border border-stone-200 rounded-xl">
+              <button type="button" onclick="addDraftItem()" class="px-3 py-2 bg-stone-200 hover:bg-stone-300 rounded-xl text-xs font-bold text-stone-700">追加</button>
+            </div>
+          </div>
+        </details>
+
+        <!-- ⚠️ 提出物・締切（任意・折りたたみ） -->
+        <details class="text-xs border border-red-200 rounded-2xl p-3 bg-red-50/40" id="draftDeadlineDetails">
+          <summary class="font-bold text-red-800 cursor-pointer hover:text-red-950 flex items-center justify-between">
+            <span class="flex items-center gap-1">
+              <i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-red-500"></i>
+              <span>提出物・同意書の締切を設定する (任意)</span>
+            </span>
+            <span class="text-[10px] text-red-400 font-normal">タップして開閉</span>
+          </summary>
+          <div class="mt-3 grid grid-cols-2 gap-2 pt-2 border-t border-red-200/60">
+            <div>
+              <span class="text-[10px] text-red-700 font-semibold">締切日</span>
+              <input type="date" id="draftDeadline" class="w-full p-2 text-xs bg-white border border-red-200 rounded-xl text-red-700 font-bold">
+            </div>
+            <div>
+              <span class="text-[10px] text-red-700 font-semibold">提出内容</span>
+              <input type="text" id="draftDeadlineDesc" placeholder="参加同意書 / ワークシート" class="w-full p-2 text-xs bg-white border border-red-200 rounded-xl">
+            </div>
+          </div>
+        </details>
+
         <!-- 登録確定ボタン -->
         <div class="pt-2 flex gap-2">
           <button type="button" onclick="closeModal('draftModal')" class="flex-1 py-3 rounded-xl bg-stone-100 text-stone-600 font-bold text-xs hover:bg-stone-200">キャンセル</button>
           <button type="submit" class="flex-[2] py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/30 flex items-center justify-center gap-1.5">
             <i data-lucide="check" class="w-4 h-4"></i>
-            <span>この内容でおたよりを登録</span>
+            <span id="draftSubmitBtnText">この内容でおたよりを登録</span>
           </button>
         </div>
 
@@ -314,17 +335,24 @@
   <div id="detailModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay animate-pop">
     <div class="bg-white w-full max-w-lg rounded-3xl p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto">
       <div class="flex items-center justify-between border-b pb-3 border-stone-100">
-        <div class="flex items-center gap-2">
-          <span id="detailBadge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800">行事</span>
+        <div class="flex items-center gap-2 flex-wrap">
+          <div id="detailBadgesContainer" class="flex gap-1"></div>
           <span id="detailDateDisplay" class="text-xs text-stone-500 font-semibold"></span>
         </div>
-        <button onclick="closeModal('detailModal')" class="p-1.5 text-stone-400 hover:text-stone-700 rounded-full hover:bg-stone-100">
-          <i data-lucide="x" class="w-5 h-5"></i>
-        </button>
+        <div class="flex items-center gap-1">
+          <!-- 編集ボタン -->
+          <button onclick="editCurrentPost()" title="おたよりを編集" class="p-1.5 text-stone-600 hover:text-stone-900 rounded-full hover:bg-stone-100 flex items-center gap-1 text-xs font-bold px-2.5 bg-stone-100">
+            <i data-lucide="edit-3" class="w-3.5 h-3.5 text-stone-600"></i>
+            <span>編集</span>
+          </button>
+          <button onclick="closeModal('detailModal')" class="p-1.5 text-stone-400 hover:text-stone-700 rounded-full hover:bg-stone-100">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
       </div>
 
-      <!-- 画像 -->
-      <div id="detailImageContainer" class="w-full h-48 rounded-2xl bg-stone-100 overflow-hidden border border-stone-200">
+      <!-- 画像（ある場合のみ） -->
+      <div id="detailImageContainer" class="w-full h-44 rounded-2xl bg-stone-100 overflow-hidden border border-stone-200 flex items-center justify-center">
         <img id="detailImage" class="w-full h-full object-contain bg-stone-50" src="" alt="プリント">
       </div>
 
@@ -334,13 +362,13 @@
         <p id="detailTitleEn" class="text-xs text-stone-500 font-medium mt-0.5"></p>
       </div>
 
-      <!-- 行事詳細カード -->
-      <div class="p-3.5 rounded-2xl bg-stone-50 border border-stone-200/80 space-y-2 text-xs">
-        <div class="flex items-center justify-between">
+      <!-- 行事詳細カード（日時がある場合） -->
+      <div id="detailDateTimeCard" class="hidden p-3.5 rounded-2xl bg-stone-50 border border-stone-200/80 space-y-2 text-xs">
+        <div id="detailTimeRow" class="flex items-center justify-between">
           <span class="text-stone-500">⏰ 日時・時間:</span>
           <span id="detailTime" class="font-bold text-stone-800"></span>
         </div>
-        <div class="flex items-center justify-between">
+        <div id="detailLocationRow" class="flex items-center justify-between">
           <span class="text-stone-500">📍 場所:</span>
           <span id="detailLocation" class="font-bold text-stone-800"></span>
         </div>
@@ -350,8 +378,8 @@
         </div>
       </div>
 
-      <!-- 持ち物 -->
-      <div>
+      <!-- 持ち物（ある場合のみ表示） -->
+      <div id="detailItemsSection" class="hidden">
         <h4 class="text-xs font-bold text-stone-700 mb-1.5 flex items-center gap-1">
           <i data-lucide="backpack" class="w-3.5 h-3.5 text-amber-600"></i>
           <span>持ち物リスト</span>
@@ -363,8 +391,8 @@
 
       <!-- 日本語要約 -->
       <div>
-        <h4 class="text-xs font-bold text-stone-700 mb-1">📝 日本語要約・連絡事項</h4>
-        <p id="detailSummary" class="text-xs leading-relaxed text-stone-700 bg-stone-50 p-3 rounded-2xl border border-stone-200"></p>
+        <h4 class="text-xs font-bold text-stone-700 mb-1">📝 日本語翻訳 ＆ 連絡事項</h4>
+        <p id="detailSummary" class="text-xs leading-relaxed text-stone-700 bg-stone-50 p-3.5 rounded-2xl border border-stone-200 whitespace-pre-wrap"></p>
       </div>
 
       <!-- 英語原文 -->
