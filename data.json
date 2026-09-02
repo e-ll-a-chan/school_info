@@ -1,6 +1,34 @@
 {
   "posts": [
     {
+      "id": "2c3addff",
+      "title": "評価タスクの設計のお知らせ",
+      "title_en": "Assessment Task Design",
+      "date": null,
+      "time_start": null,
+      "time_end": null,
+      "location": "",
+      "target_child": "児童生徒",
+      "items": [],
+      "items_en": [
+        "Shoe Box"
+      ],
+      "deadline": null,
+      "deadline_description": "",
+      "is_submitted": false,
+      "summary": "評価タスクの設計\n目標\nあなたの目標は、あなたの経験、選択、責任がどのように行われるかを示すことです。\n価値観とユニークさ\n特徴があなたという人間を形作っているのです。\n役割\nあなたはアイデンティティエクスプローラーです。\n観客\n聴衆はクラスメートと教師になります。\n状況/文脈\nあなたは、あなたが何者であるかを示すアイデンティティ スーツケースを作成するように求められています。\nあなたの経験、選択、責任があなたのアイデンティティの形成にどのように役立ったか。\n製品、プロセス、パフォーマンス、目的\n製品: 装飾された靴箱を使用して、My Identity スーツケースを作成します。\nパフォーマンス: My Identity スーツケースのプレゼンテーション\nスタンダンデとリトリン\nカップコセ用",
+      "summary_en": "Assessment Task Design\nGoal\nYour goal is to show how your experiences, choices, responsibilities,\nvalues and unique\ncharacteristics have shaped who you are.\nRole\nYou are an Identity Explorer.\nAudience\nYour audience will be your classmates and teacher.\nSituation/Context\nYou have been asked to create an Identity Suitcase to show what makes you who you are and\nhow your experiences, choices and responsibilities have helped shape your identity.\nProduct, process, performance, purpose\nProduct: You will create a My Identity Suitcase using a decorated shoebox.\nPerformance: My Identity Suitcase Presentation\nStandande and rritorin\nfor cupcoce",
+      "source_text": "Assessment Task Design\nGoal\nYour goal is to show how your experiences, choices, responsibilities,\nvalues and unique\ncharacteristics have shaped who you are.\nRole\nYou are an Identity Explorer.\nAudience\nYour audience will be your classmates and teacher.\nSituation/Context\nYou have been asked to create an Identity Suitcase to show what makes you who you are and\nhow your experiences, choices and responsibilities have helped shape your identity.\nProduct, process, performance, purpose\nProduct: You will create a My Identity Suitcase using a decorated shoebox.\nPerformance: My Identity Suitcase Presentation\nStandande and rritorin\nfor cupcoce",
+      "source_date_raw": "",
+      "tags": [
+        "英語・UOI",
+        "提出物あり"
+      ],
+      "image_url": "/uploads/d5e580d8-e42f-46b0-9b1b-c5ca0d34effd.png",
+      "created_at": "2026-09-02T13:03:44.357452",
+      "updated_at": "2026-09-02T13:04:08.240220"
+    },
+    {
       "id": "ded553f2",
       "title": "P2 (フェーズ 2) の保護者の皆様、のお知らせ",
       "title_en": "Dear P2 (Phase 2) Parents,",

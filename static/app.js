@@ -725,7 +725,17 @@ async function showLineNotification(postId) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ post_id: postId })
     });
+let currentLineMessageText = '';
+
+async function showLineNotification(postId) {
+  try {
+    const res = await fetch('/api/line/notify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ post_id: postId })
+    });
     const data = await res.json();
+    currentLineMessageText = data.message;
     document.getElementById('linePreviewBubble').innerText = data.message;
     document.getElementById('lineTimeDisplay').innerText = data.sent_at || '18:00';
   } catch (err) {
@@ -740,6 +750,36 @@ function triggerSimulatedLineNotification() {
 function notifyViaLine() {
   if (activePostDetail) {
     openLineModal(activePostDetail.id);
+  } else {
+    openLineModal(null);
+  }
+}
+
+function shareDirectToLine() {
+  let msg = currentLineMessageText;
+  if (!msg && activePostDetail) {
+    msg = `📮【おたよりポスト】\n${activePostDetail.title}\n`;
+    if (activePostDetail.date) msg += `📅 日程: ${activePostDetail.date}\n`;
+    if (activePostDetail.summary) msg += `\n📝 連絡事項:\n${activePostDetail.summary}\n`;
+  }
+  if (!msg) {
+    msg = "📮 おたよりポストからの連絡です。";
+  }
+
+  const lineShareUrl = `https://line.me/R/msg/text/?${encodeURIComponent(msg)}`;
+  window.open(lineShareUrl, '_blank');
+}
+
+function copyLineMessage() {
+  const text = currentLineMessageText || document.getElementById('linePreviewBubble').innerText;
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(() => {
+      showNotificationToast('📋 メッセージをコピーしました！');
+    }).catch(() => {
+      alert('コピーに失敗しました');
+    });
+  } else {
+    showNotificationToast('📋 メッセージをコピーしました！');
   }
 }
 
@@ -751,7 +791,7 @@ async function saveSettings(event) {
   const notifyTime = document.getElementById('settingNotifyTime').value;
 
   const payload = {
-    user_name: userName || 'yun',
+    user_name: userName || 'めぐ',
     notification_time: notifyTime || '18:00'
   };
   if (apiKey) payload.gemini_api_key = apiKey;

@@ -451,10 +451,16 @@
         </div>
       </div>
 
-      <div class="space-y-2">
-        <button onclick="triggerSimulatedLineNotification()" class="w-full py-2.5 rounded-xl bg-[#06C755] hover:bg-[#05b34c] text-white font-bold text-xs flex items-center justify-center gap-1.5 transition">
-          <i data-lucide="bell-ring" class="w-4 h-4"></i>
-          <span>テスト通知を再生成</span>
+      <div class="space-y-2 pt-1">
+        <!-- LINEアプリを開いて送信 -->
+        <button onclick="shareDirectToLine()" class="w-full py-3 rounded-2xl bg-[#06C755] hover:bg-[#05b34c] text-white font-extrabold text-xs shadow-md shadow-emerald-500/20 flex items-center justify-center gap-2 transition active:scale-[0.98]">
+          <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M24 10.304c0-5.369-5.383-9.738-12-9.738-6.616 0-12 4.369-12 9.738 0 4.814 4.269 8.846 10.036 9.608.391.084.922.258 1.057.592.121.303.079.777.039 1.085l-.171 1.027c-.053.303-.242 1.186 1.039.647 1.281-.54 6.911-4.069 9.428-6.967 1.739-1.907 2.572-3.843 2.572-5.992z"/></svg>
+          <span>LINEアプリを開いて送信・共有</span>
+        </button>
+        <!-- メッセージをコピー -->
+        <button onclick="copyLineMessage()" class="w-full py-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs flex items-center justify-center gap-1.5 transition">
+          <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+          <span>メッセージをコピー</span>
         </button>
       </div>
     </div>
