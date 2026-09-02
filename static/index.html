@@ -3,15 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>おたよりポスト | 英語プリントをAIが自動翻訳・予定管理</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📮</text></svg>">
+  <title>School Info📝 | 学校のおたより翻訳・予定管理</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📝</text></svg>">
   
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
   
-  <link rel="stylesheet" href="/static/style.css?v=20260902_1330">
+  <link rel="stylesheet" href="/static/style.css?v=20260902_1335">
   <link rel="manifest" href="/static/manifest.json">
   <meta name="theme-color" content="#EF4444">
 </head>
@@ -23,33 +23,22 @@
     <!-- 上部ステータスバー（スマホUI風） -->
     <header class="px-5 pt-4 pb-3 flex items-center justify-between border-b border-stone-200/60 bg-white/80 backdrop-blur sticky top-0 z-30">
       <div class="flex items-center gap-2.5">
-        <div class="w-10 h-10 rounded-2xl bg-red-500 text-white flex items-center justify-center text-xl shadow-md shadow-red-500/30">
-          📮
+        <div class="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center text-xl shadow-md shadow-amber-500/30">
+          📝
         </div>
         <div>
-          <div class="flex items-center gap-1.5">
-            <h1 class="font-extrabold text-lg tracking-tight text-stone-800">おたよりポスト</h1>
-            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700">EN ➔ JA</span>
-          </div>
+          <h1 class="font-extrabold text-lg tracking-tight text-stone-800">School Info📝</h1>
           <p class="text-xs text-stone-500 font-medium">こんにちは、<span id="userNameDisplay">めぐ</span>さん</p>
         </div>
       </div>
       
-      <div class="flex items-center gap-1.5">
+      <div class="flex items-center gap-2">
         <!-- 🔄 更新ボタン -->
-        <button onclick="refreshAllData()" id="headerRefreshBtn" title="最新データを再読み込み" class="p-2 rounded-xl text-stone-600 hover:bg-stone-100 active:scale-95 transition">
+        <button onclick="refreshAllData()" id="headerRefreshBtn" title="最新データを再読み込み" class="p-2 rounded-xl text-stone-600 hover:bg-stone-100 active:scale-95 transition flex items-center justify-center">
           <i data-lucide="rotate-cw" class="w-5 h-5 text-amber-600"></i>
         </button>
-        <!-- LINE通知ボタン -->
-        <button onclick="openLineModal()" title="LINE通知プレビュー" class="p-2 rounded-xl text-stone-600 hover:bg-stone-100 active:scale-95 transition">
-          <i data-lucide="message-circle" class="w-5 h-5 text-emerald-600"></i>
-        </button>
-        <!-- iCal一括ダウンロード -->
-        <a href="/api/calendar.ics" download="otayori_calendar.ics" title="カレンダー一括書き出し" class="p-2 rounded-xl text-stone-600 hover:bg-stone-100 active:scale-95 transition">
-          <i data-lucide="calendar" class="w-5 h-5 text-sky-600"></i>
-        </a>
-        <!-- 設定ボタン -->
-        <button onclick="openSettingsModal()" title="設定" class="p-2 rounded-xl text-stone-600 hover:bg-stone-100 active:scale-95 transition">
+        <!-- ⚙️ 設定ボタン -->
+        <button onclick="openSettingsModal()" title="設定" class="p-2 rounded-xl text-stone-600 hover:bg-stone-100 active:scale-95 transition flex items-center justify-center">
           <i data-lucide="settings" class="w-5 h-5 text-stone-600"></i>
         </button>
       </div>
@@ -88,10 +77,6 @@
           <div class="flex items-center gap-1.5 text-xs font-bold text-stone-700 uppercase tracking-wider">
             <span>📅 直近の予定 ＆ 🎒 持ち物</span>
           </div>
-          <a href="/api/calendar.ics" class="text-xs text-sky-600 font-bold hover:underline flex items-center gap-0.5">
-            <span>🗓️ カレンダー連携</span>
-            <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
-          </a>
         </div>
         <div id="upcomingEventsList" class="space-y-2.5">
           <!-- 直近の予定リスト -->
@@ -141,8 +126,8 @@
     <div class="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
       <div class="flex items-center justify-between border-b pb-3 border-stone-100">
         <div class="flex items-center gap-2">
-          <div class="w-8 h-8 rounded-xl bg-red-100 text-red-600 flex items-center justify-center font-bold">📮</div>
-          <h3 class="font-extrabold text-stone-800 text-lg">英語のおたよりをポスト</h3>
+          <div class="w-8 h-8 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center font-bold">📝</div>
+          <h3 class="font-extrabold text-stone-800 text-lg">School Info に追加</h3>
         </div>
         <button onclick="closeModal('uploadModal')" class="p-1.5 text-stone-400 hover:text-stone-700 rounded-full hover:bg-stone-100">
           <i data-lucide="x" class="w-5 h-5"></i>
@@ -496,6 +481,6 @@
   </div>
 
   <!-- JavaScript ロジック (キャッシュバスター付き) -->
-  <script src="/static/app.js?v=20260902_1330"></script>
+  <script src="/static/app.js?v=20260902_1335"></script>
 </body>
 </html>
