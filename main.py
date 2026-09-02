@@ -54,6 +54,10 @@ class PostCreate(BaseModel):
     is_submitted: Optional[bool] = False
     summary: str
     summary_en: Optional[str] = ""
+    text_translation: Optional[str] = ""
+    text_raw: Optional[str] = ""
+    image_translation: Optional[str] = ""
+    image_raw: Optional[str] = ""
     source_text: Optional[str] = ""
     source_date_raw: Optional[str] = ""
     tags: List[str] = []
@@ -74,6 +78,10 @@ class PostUpdate(BaseModel):
     is_submitted: Optional[bool] = None
     summary: Optional[str] = None
     summary_en: Optional[str] = None
+    text_translation: Optional[str] = None
+    text_raw: Optional[str] = None
+    image_translation: Optional[str] = None
+    image_raw: Optional[str] = None
     source_text: Optional[str] = None
     source_date_raw: Optional[str] = None
     tags: Optional[List[str]] = None
@@ -303,20 +311,22 @@ def _format_fairview_line_message(post: dict) -> str:
     if date_str:
         t_str = f" ⏰ {time_start}〜{time_end}" if (time_start and time_end) else (f" ⏰ {time_start}" if time_start else "")
         details.append(f"📅 日程: {date_str.replace('-', '/')}{t_str}")
-    if location and "学校" not in location:
-        details.append(f"📍 場所: {location}")
-    if items:
-        details.append(f"🎒 持ち物: {'、'.join(items)}")
-    if deadline:
-        details.append(f"⚠️ 提出締切: {deadline.replace('-', '/')} ({deadline_desc or '提出用紙'})")
+    text_trans = post.get("text_translation", "")
+    img_trans = post.get("image_translation", "")
+    summary = post.get("summary", "")
 
-    if details:
-        lines.append("")
-        lines.extend(details)
+    if text_trans and img_trans:
+        body_content = f"📱【メッセージ本文】\n{text_trans}\n\n🖼️【添付プリント翻訳】\n{img_trans}"
+    elif img_trans and not text_trans:
+        body_content = f"🖼️【添付プリント翻訳】\n{img_trans}"
+    elif text_trans:
+        body_content = f"{text_trans}"
+    else:
+        body_content = f"{summary}"
 
     lines.append("")
     lines.append("📝「本文」")
-    lines.append(f"{summary}")
+    lines.append(body_content)
 
     return "\n".join(lines)
 

@@ -114,7 +114,7 @@ class AIService:
                          mime_type: str = "image/jpeg", 
                          text_content: Optional[str] = None, 
                          api_key: Optional[str] = None) -> Dict[str, Any]:
-        """英語のおたより（画像またはテキスト）をAIで解析・翻訳・構造化"""
+        """英語のおたより（画像またはテキスト、あるいは両方）をAIで解析・個別翻訳・構造化"""
         key = api_key or os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY", "")
 
         # 1. Gemini APIが使える場合は直接呼び出し
@@ -126,16 +126,66 @@ class AIService:
             except Exception as e:
                 print(f"[AIService] Gemini API error: {e}, falling back.")
 
-        # 2. 画像のみでテキストがない場合、OCRで画像内英文を読み取る
-        raw_text = (text_content or "").strip()
-        if not raw_text and image_bytes:
-            print("[AIService] Extracting text from image via OCR...")
-            raw_text = self.extract_text_from_image(image_bytes, mime_type)
-            if not raw_text:
-                raw_text = "School Announcement: Photo attached. Please check the notice details."
+        # 2. テキストと画像を別々に翻訳
+        text_raw = (text_content or "").strip()
+        text_translation = self.translate_to_japanese(text_raw) if text_raw else ""
 
-        # 3. 英文の全文翻訳と構造化
-        return self._intelligent_parse_with_translation(image_bytes, raw_text)
+        image_raw = ""
+        image_translation = ""
+        if image_bytes:
+            print("[AIService] Extracting text from image via OCR...")
+            image_raw = self.extract_text_from_image(image_bytes, mime_type)
+            if image_raw:
+                image_translation = self.translate_to_japanese(image_raw)
+
+        # 3. 構造化情報の推論
+        combined_text = f"{text_raw}\n{image_raw}".strip()
+        current_year = date.today().year
+
+        first_line = (text_raw or image_raw or "").split('\n')[0].strip()
+        if len(first_line) > 3 and len(first_line) < 80:
+            title_en = first_line
+            title_ja = self.translate_to_japanese(first_line)
+            if not title_ja.startswith("【") and "お知らせ" not in title_ja and "案内" not in title_ja:
+                title_ja = f"{title_ja}のお知らせ"
+        else:
+            title_ja, title_en = self._infer_title(combined_text)
+
+        event_date, raw_date_str = self._extract_date(combined_text, current_year)
+        time_start, time_end = self._extract_times(combined_text)
+        items_ja, items_en = self._extract_items_strict(combined_text + " " + text_translation + " " + image_translation)
+        deadline, deadline_desc = self._extract_deadline(combined_text, text_translation + " " + image_translation, current_year)
+        tags = self._infer_tags(combined_text, deadline)
+
+        summary_parts = []
+        if text_translation:
+            summary_parts.append(f"【メッセージ本文】\n{text_translation}")
+        if image_translation:
+            summary_parts.append(f"【添付プリント翻訳】\n{image_translation}")
+        summary_ja = "\n\n".join(summary_parts) if summary_parts else (text_translation or image_translation or combined_text)
+
+        return {
+            "title": title_ja,
+            "title_en": title_en,
+            "date": event_date,
+            "time_start": time_start,
+            "time_end": time_end,
+            "location": "",
+            "target_child": "児童生徒",
+            "items": items_ja,
+            "items_en": items_en,
+            "deadline": deadline,
+            "deadline_description": deadline_desc,
+            "summary": summary_ja,
+            "summary_en": combined_text,
+            "text_translation": text_translation,
+            "text_raw": text_raw,
+            "image_translation": image_translation,
+            "image_raw": image_raw,
+            "source_text": combined_text,
+            "source_date_raw": raw_date_str or (event_date if event_date else ""),
+            "tags": tags
+        }
 
     def _call_gemini_api(self, api_key: str, image_bytes: Optional[bytes], mime_type: str, text_content: Optional[str]) -> Optional[Dict[str, Any]]:
         try:

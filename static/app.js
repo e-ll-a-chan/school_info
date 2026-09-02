@@ -429,8 +429,15 @@ function openDraftModal(draft, isEditing = false) {
 
   document.getElementById('draftTitle').value = draft.title || '';
   document.getElementById('draftTitleEn').value = draft.title_en || '';
-  document.getElementById('draftSummary').value = draft.summary || '';
-  document.getElementById('draftSourceText').value = draft.source_text || '';
+
+  // ① 📱 テキスト・メッセージ本文の翻訳＆原文
+  const textTrans = draft.text_translation || (draft.image_translation ? '' : (draft.summary || ''));
+  document.getElementById('draftTextTranslation').value = textTrans;
+  document.getElementById('draftTextRaw').value = draft.text_raw || (draft.image_raw ? '' : (draft.source_text || ''));
+
+  // ② 🖼️ 添付写真・画像の翻訳＆原文
+  document.getElementById('draftImageTranslation').value = draft.image_translation || '';
+  document.getElementById('draftImageRaw').value = draft.image_raw || '';
 
   // タグ選択ボタングループ生成
   currentDraftData.tags = currentDraftData.tags || [];
@@ -523,12 +530,19 @@ async function handleDraftImageUpload(event) {
       if (data.draft) {
         const d = data.draft;
         
-        // 翻訳結果をフォームに自動反映
-        if (d.title) document.getElementById('draftTitle').value = d.title;
-        if (d.title_en) document.getElementById('draftTitleEn').value = d.title_en;
-        if (d.summary) document.getElementById('draftSummary').value = d.summary;
-        if (d.source_text) document.getElementById('draftSourceText').value = d.source_text;
-        
+        // 画像用の翻訳と原文をセット！
+        const imgTrans = d.image_translation || d.summary || '';
+        const imgRaw = d.image_raw || d.source_text || '';
+        document.getElementById('draftImageTranslation').value = imgTrans;
+        document.getElementById('draftImageRaw').value = imgRaw;
+
+        // タイトルが未入力またはデフォルトの場合のみ反映
+        const curTitle = document.getElementById('draftTitle').value.trim();
+        if (!curTitle || curTitle === '学校からのお知らせ' || curTitle.includes('未定')) {
+          if (d.title) document.getElementById('draftTitle').value = d.title;
+          if (d.title_en) document.getElementById('draftTitleEn').value = d.title_en;
+        }
+
         if (d.date) {
           document.getElementById('draftDate').value = d.date;
           const dtDetails = document.getElementById('draftDateTimeDetails');
@@ -546,19 +560,19 @@ async function handleDraftImageUpload(event) {
         }
 
         if (d.tags && d.tags.length > 0 && currentDraftData) {
-          currentDraftData.tags = d.tags;
+          currentDraftData.tags = Array.from(new Set([...(currentDraftData.tags || []), ...d.tags]));
           renderDraftTagButtons();
         }
 
         if (d.items && d.items.length > 0 && currentDraftData) {
-          currentDraftData.items = d.items;
+          currentDraftData.items = Array.from(new Set([...(currentDraftData.items || []), ...d.items]));
           renderDraftItems(currentDraftData.items);
           const itDetails = document.getElementById('draftItemsDetails');
           if (itDetails) itDetails.open = true;
         }
 
         updateDraftImageDisplay();
-        showNotificationToast('✨ 画像の英文を読み取り、日本語翻訳を反映しました！');
+        showNotificationToast('✨ 添付画像内の英文を翻訳して反映しました！');
       }
     } else {
       showNotificationToast('📷 画像を添付しました！');
@@ -576,6 +590,8 @@ async function handleDraftImageUpload(event) {
 function removeDraftImage() {
   if (currentDraftData) {
     currentDraftData.image_url = null;
+    document.getElementById('draftImageTranslation').value = '';
+    document.getElementById('draftImageRaw').value = '';
     updateDraftImageDisplay();
     showNotificationToast('🗑️ 画像の添付を解除しました');
   }
@@ -653,6 +669,18 @@ function addDraftItem() {
 async function saveDraftPost(event) {
   event.preventDefault();
 
+  const textTrans = document.getElementById('draftTextTranslation').value.trim();
+  const textRaw = document.getElementById('draftTextRaw').value.trim();
+  const imgTrans = document.getElementById('draftImageTranslation').value.trim();
+  const imgRaw = document.getElementById('draftImageRaw').value.trim();
+
+  let combinedSummary = '';
+  if (textTrans && imgTrans) {
+    combinedSummary = `【メッセージ本文】\n${textTrans}\n\n【添付プリント翻訳】\n${imgTrans}`;
+  } else {
+    combinedSummary = textTrans || imgTrans || '詳細なし';
+  }
+
   const postData = {
     title: document.getElementById('draftTitle').value.trim(),
     title_en: document.getElementById('draftTitleEn').value.trim(),
@@ -665,9 +693,13 @@ async function saveDraftPost(event) {
     items_en: currentDraftData.items_en || [],
     deadline: document.getElementById('draftDeadline').value || null,
     deadline_description: document.getElementById('draftDeadlineDesc').value.trim(),
-    summary: document.getElementById('draftSummary').value.trim(),
+    summary: combinedSummary,
     summary_en: currentDraftData.summary_en || '',
-    source_text: document.getElementById('draftSourceText').value.trim(),
+    text_translation: textTrans,
+    text_raw: textRaw,
+    image_translation: imgTrans,
+    image_raw: imgRaw,
+    source_text: `${textRaw}\n\n${imgRaw}`.trim(),
     source_date_raw: currentDraftData.source_date_raw || '',
     tags: currentDraftData.tags || ['学校連絡'],
     image_url: currentDraftData.image_url || null
@@ -749,10 +781,6 @@ async function openDetailModal(postId) {
       dateTimeCard.classList.add('hidden');
     }
 
-    // 画像
-    const imgEl = document.getElementById('detailImage');
-    imgEl.src = post.image_url || '/static/samples/no_image.svg';
-
     // 持ち物（ある場合のみ表示）
     const itemsSection = document.getElementById('detailItemsSection');
     const itemsContainer = document.getElementById('detailItems');
@@ -765,11 +793,38 @@ async function openDetailModal(postId) {
       itemsSection.classList.add('hidden');
     }
 
-    // 要約 ＆ 原文
-    document.getElementById('detailSummary').innerText = post.summary || '詳細なし';
-    document.getElementById('detailSourceText').innerText = post.source_text || '原文なし';
+    // ① 📱 メッセージ・メール本文カード
+    const textTrans = post.text_translation || (post.image_translation ? '' : post.summary);
+    const textRaw = post.text_raw || (post.image_raw ? '' : post.source_text);
+    const textCard = document.getElementById('detailTextCard');
+    if (textTrans || textRaw) {
+      textCard.classList.remove('hidden');
+      document.getElementById('detailTextTranslation').innerText = textTrans || '本文翻訳なし';
+      document.getElementById('detailTextRaw').innerText = textRaw || '英語原文なし';
+    } else {
+      textCard.classList.add('hidden');
+    }
+
+    // ② 🖼️ 添付写真 ＆ 画像内の翻訳カード
+    const imageCard = document.getElementById('detailImageCard');
+    const imgTrans = post.image_translation || '';
+    const imgRaw = post.image_raw || '';
+    const hasImage = Boolean(post.image_url || imgTrans || imgRaw);
+
+    if (hasImage) {
+      imageCard.classList.remove('hidden');
+      const imgEl = document.getElementById('detailImage');
+      imgEl.src = post.image_url || '/static/samples/no_image.svg';
+
+      const transEl = document.getElementById('detailImageTranslation');
+      transEl.innerText = imgTrans || (post.image_url ? '（画像内のテキスト翻訳なし）' : '');
+      document.getElementById('detailImageRaw').innerText = imgRaw || '（OCR原文なし）';
+    } else {
+      imageCard.classList.add('hidden');
+    }
 
     openModal('detailModal');
+    if (window.lucide) lucide.createIcons();
   } catch (err) {
     alert('詳細の取得に失敗しました: ' + err.message);
   }
@@ -874,9 +929,24 @@ function formatFairviewLineMessage(post) {
     lines.push(...details);
   }
 
+  const textTrans = post.text_translation || '';
+  const imgTrans = post.image_translation || '';
+  const summary = post.summary || '';
+
+  let bodyContent = '';
+  if (textTrans && imgTrans) {
+    bodyContent = `📱【メッセージ本文】\n${textTrans}\n\n🖼️【添付プリント翻訳】\n${imgTrans}`;
+  } else if (imgTrans && !textTrans) {
+    bodyContent = `🖼️【添付プリント翻訳】\n${imgTrans}`;
+  } else if (textTrans) {
+    bodyContent = `${textTrans}`;
+  } else {
+    bodyContent = `${summary}`;
+  }
+
   lines.push('');
   lines.push('📝「本文」');
-  lines.push(summary);
+  lines.push(bodyContent);
 
   return lines.join('\n');
 }
