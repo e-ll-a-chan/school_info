@@ -1141,6 +1141,7 @@ function openModal(id) {
   if (modal) {
     modal.classList.remove('hidden');
     modal.style.setProperty('display', 'flex', 'important');
+    modal.style.setProperty('pointer-events', 'auto', 'important');
     modal.style.setProperty('z-index', '99999', 'important');
     modal.style.setProperty('visibility', 'visible', 'important');
     modal.style.setProperty('opacity', '1', 'important');
@@ -1155,6 +1156,8 @@ function closeModal(id) {
   if (modal) {
     modal.classList.add('hidden');
     modal.style.setProperty('display', 'none', 'important');
+    modal.style.setProperty('pointer-events', 'none', 'important');
+    modal.style.setProperty('visibility', 'hidden', 'important');
   }
 }
 
