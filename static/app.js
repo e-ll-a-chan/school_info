@@ -205,10 +205,12 @@ function renderPosts(posts) {
   container.innerHTML = posts.map(p => {
     const tagsHtml = (p.tags || []).map(t => {
       let colorClass = 'bg-stone-100 text-stone-600';
-      if (t.includes('遠足')) colorClass = 'bg-emerald-100 text-emerald-800';
-      else if (t.includes('行事')) colorClass = 'bg-sky-100 text-sky-800';
-      else if (t.includes('提出物')) colorClass = 'bg-red-100 text-red-800';
-      else if (t.includes('PTA')) colorClass = 'bg-amber-100 text-amber-800';
+      if (t.includes('英語') || t.includes('UOI')) colorClass = 'bg-blue-100 text-blue-800';
+      else if (t.includes('中国語')) colorClass = 'bg-red-100 text-red-800';
+      else if (t.includes('アート')) colorClass = 'bg-purple-100 text-purple-800';
+      else if (t.includes('Music') || t.includes('音楽')) colorClass = 'bg-pink-100 text-pink-800';
+      else if (t.includes('学校行事') || t.includes('行事') || t.includes('遠足')) colorClass = 'bg-emerald-100 text-emerald-800';
+      else if (t.includes('提出物')) colorClass = 'bg-amber-100 text-amber-800';
       return `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold ${colorClass}">${escapeHtml(t)}</span>`;
     }).join('');
 

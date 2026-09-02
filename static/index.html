@@ -110,10 +110,12 @@
         <!-- タグフィルター -->
         <div class="flex items-center gap-1.5 overflow-x-auto pb-2 -mx-1 px-1 no-scrollbar text-xs">
           <button onclick="filterByTag('all')" class="tag-filter-btn active px-3 py-1.5 rounded-full font-bold bg-stone-800 text-white shadow-sm transition whitespace-nowrap">すべて</button>
-          <button onclick="filterByTag('遠足')" class="tag-filter-btn px-3 py-1.5 rounded-full font-bold bg-white text-stone-600 border border-stone-200 hover:bg-stone-50 transition whitespace-nowrap">🎒 遠足</button>
-          <button onclick="filterByTag('行事')" class="tag-filter-btn px-3 py-1.5 rounded-full font-bold bg-white text-stone-600 border border-stone-200 hover:bg-stone-50 transition whitespace-nowrap">🏫 行事</button>
+          <button onclick="filterByTag('英語・UOI')" class="tag-filter-btn px-3 py-1.5 rounded-full font-bold bg-white text-stone-600 border border-stone-200 hover:bg-stone-50 transition whitespace-nowrap">📚 英語・UOI</button>
+          <button onclick="filterByTag('中国語')" class="tag-filter-btn px-3 py-1.5 rounded-full font-bold bg-white text-stone-600 border border-stone-200 hover:bg-stone-50 transition whitespace-nowrap">🀄 中国語</button>
+          <button onclick="filterByTag('アート')" class="tag-filter-btn px-3 py-1.5 rounded-full font-bold bg-white text-stone-600 border border-stone-200 hover:bg-stone-50 transition whitespace-nowrap">🎨 アート</button>
+          <button onclick="filterByTag('Music')" class="tag-filter-btn px-3 py-1.5 rounded-full font-bold bg-white text-stone-600 border border-stone-200 hover:bg-stone-50 transition whitespace-nowrap">🎵 Music</button>
+          <button onclick="filterByTag('学校行事')" class="tag-filter-btn px-3 py-1.5 rounded-full font-bold bg-white text-stone-600 border border-stone-200 hover:bg-stone-50 transition whitespace-nowrap">🏫 学校行事</button>
           <button onclick="filterByTag('提出物あり')" class="tag-filter-btn px-3 py-1.5 rounded-full font-bold bg-white text-stone-600 border border-stone-200 hover:bg-stone-50 transition whitespace-nowrap">⚠️ 提出物</button>
-          <button onclick="filterByTag('PTA')" class="tag-filter-btn px-3 py-1.5 rounded-full font-bold bg-white text-stone-600 border border-stone-200 hover:bg-stone-50 transition whitespace-nowrap">🌱 PTA</button>
         </div>
 
         <!-- おたよりカードリスト -->
@@ -178,31 +180,8 @@
             <i data-lucide="type" class="w-3.5 h-3.5 text-stone-500"></i>
             <span>英語のおたよりテキスト（貼り付け）:</span>
           </label>
-          <textarea id="rawTextInput" rows="4" placeholder="英語のおたよりの文章やメール本文をここに貼り付け&#10;(例: Autumn Field Trip to Zoo on Oct 15th. Please bring packed lunch and water bottle. Return slip by Oct 5th.)"
-                    class="w-full p-3 text-xs bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-400/40 font-mono"></textarea>
-        </div>
-      </div>
-
-      <!-- サンプルから試すボタン -->
-      <div class="pt-2 border-t border-stone-100">
-        <p class="text-[11px] font-bold text-stone-400 uppercase mb-2">サンプルプリントですぐ試す:</p>
-        <div class="grid grid-cols-2 gap-2">
-          <button onclick="loadSamplePreset('field_trip')" class="p-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-left text-xs font-semibold text-stone-700 flex items-center gap-1.5 transition">
-            <span>🎒</span>
-            <span class="truncate">秋の水族館遠足</span>
-          </button>
-          <button onclick="loadSamplePreset('term2')" class="p-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-left text-xs font-semibold text-stone-700 flex items-center gap-1.5 transition">
-            <span>🏫</span>
-            <span class="truncate">2学期始業式</span>
-          </button>
-          <button onclick="loadSamplePreset('pta')" class="p-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-left text-xs font-semibold text-stone-700 flex items-center gap-1.5 transition">
-            <span>🌱</span>
-            <span class="truncate">PTA除草作業</span>
-          </button>
-          <button onclick="loadSamplePreset('photo_day')" class="p-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-left text-xs font-semibold text-stone-700 flex items-center gap-1.5 transition">
-            <span>📸</span>
-            <span class="truncate">スクール写真撮影</span>
-          </button>
+          <textarea id="rawTextInput" rows="5" placeholder="英語のおたよりの文章やメール本文をここに貼り付け&#10;(例: UOI assessment details, Chinese homework, Art activity materials, Music concert info...)"
+                    class="w-full p-3 text-xs bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-400/40 font-mono leading-relaxed"></textarea>
         </div>
       </div>
 

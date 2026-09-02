@@ -265,85 +265,56 @@ class AIService:
 
     def _infer_tags(self, text: str, deadline: Optional[str]):
         t_low = text.lower()
-        tags = ["行事"]
-        if "field trip" in t_low or "zoo" in t_low or "aquarium" in t_low:
-            tags.extend(["遠足", "要お弁当"])
-        if "sports" in t_low:
-            tags.append("運動会")
-        if "pta" in t_low:
-            tags = ["PTA", "ボランティア"]
+        tags = []
+
+        # 教科・カテゴリ分類
+        if any(w in t_low for w in ["uoi", "inquiry", "english", "literacy", "phonics", "reading", "writing", "spelling", "summative", "assessment", "presentation"]):
+            tags.append("英語・UOI")
+        
+        if any(w in t_low for w in ["chinese", "mandarin", "hanyu", "中文", "华语", "pinyin"]):
+            tags.append("中国語")
+
+        if any(w in t_low for w in ["art", "craft", "drawing", "painting", "shoe box", "sticker", "coloured paper", "color paper", "sketch", "crafts"]):
+            tags.append("アート")
+
+        if any(w in t_low for w in ["music", "concert", "singing", "song", "choir", "instrument", "piano", "recorder"]):
+            tags.append("Music")
+
+        if any(w in t_low for w in ["pe", "physical education", "sports", "swimming", "pool", "athletic"]):
+            tags.append("体育・PE")
+
+        if any(w in t_low for w in ["field trip", "ceremony", "pta", "photo", "holiday", "dismissal", "orientation"]):
+            tags.append("学校行事")
+
         if deadline:
             tags.append("提出物あり")
-        return list(set(tags))
 
-    def _extract_date(self, text: str, current_year: int):
-        # 1. YYYY-MM-DD
-        m = re.search(r'\b(202\d)[-/.](\d{1,2})[-/.](\d{1,2})\b', text)
-        if m:
-            y, mo, d = m.groups()
-            return f"{y}-{int(mo):02d}-{int(d):02d}", m.group(0)
+        # 該当がない場合のデフォルト
+        if not tags:
+            tags.append("学校連絡")
 
-        # 2. Month Day (e.g. October 15th, Oct 15, Sep. 12)
-        m2 = re.search(r'\b(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\.?\s+(\d{1,2})(?:st|nd|rd|th)?\b', text, re.IGNORECASE)
-        if m2:
-            mo_str = m2.group(1).lower()
-            day = int(m2.group(2))
-            mo = MONTH_MAP.get(mo_str[:3], 9)
-            return f"{current_year}-{mo:02d}-{day:02d}", m2.group(0)
-
-        # 3. MM/DD
-        m3 = re.search(r'\b(\d{1,2})/(\d{1,2})\b', text)
-        if m3:
-            mo, day = int(m3.group(1)), int(m3.group(2))
-            if 1 <= mo <= 12 and 1 <= day <= 31:
-                return f"{current_year}-{mo:02d}-{day:02d}", m3.group(0)
-
-        return f"{current_year}-09-15", None
-
-    def _extract_times(self, text: str):
-        times = re.findall(r'\b(\d{1,2}):(\d{2})\s*(AM|PM|am|pm)?\b', text)
-        if not times:
-            single_times = re.findall(r'\b(\d{1,2})\s*(AM|PM|am|pm)\b', text)
-            if single_times:
-                converted = []
-                for h, meridiem in single_times:
-                    hour = int(h)
-                    if meridiem.lower() == 'pm' and hour < 12:
-                        hour += 12
-                    elif meridiem.lower() == 'am' and hour == 12:
-                        hour = 0
-                    converted.append(f"{hour:02d}:00")
-                return converted[0], (converted[1] if len(converted) > 1 else None)
-            return "08:30", "15:00"
-
-        formatted = []
-        for h, m, meridiem in times:
-            hour = int(h)
-            if meridiem and meridiem.lower() == 'pm' and hour < 12:
-                hour += 12
-            elif meridiem and meridiem.lower() == 'am' and hour == 12:
-                hour = 0
-            formatted.append(f"{hour:02d}:{m}")
-
-        time_start = formatted[0] if len(formatted) > 0 else "08:30"
-        time_end = formatted[1] if len(formatted) > 1 else "15:00"
-        return time_start, time_end
+        return tags
 
     def _extract_items(self, text: str):
         items_ja = []
         items_en = []
         t_low = text.lower()
 
-        for pattern, ja_label, en_label in ITEM_DICTIONARY:
+        # 個別の指定持ち物（靴箱、ステッカー、写真、色紙など）の追加チェック
+        extended_items = [
+            (r'\b(shoe\s*box|シューズボックス|靴箱)\b', '靴箱・シューズボックス (Shoe Box)', 'Shoe Box'),
+            (r'\b(sticker|stickers|シール|ステッカー)\b', '装飾用ステッカー・シール (Stickers)', 'Stickers'),
+            (r'\b(personal\s*photo|photos|pictures|写真)\b', '写真・個人写真 (Photos)', 'Personal Photo'),
+            (r'\b(coloured\s*paper|color\s*paper|色紙|画用紙)\b', 'アクティビティ用色紙 (Coloured Paper)', 'Coloured Paper'),
+        ]
+
+        for pattern, ja_label, en_label in ITEM_DICTIONARY + extended_items:
             if re.search(pattern, t_low):
                 if ja_label not in items_ja:
                     items_ja.append(ja_label)
                     items_en.append(en_label)
 
-        if not items_ja:
-            items_ja = ["筆記用具・連絡帳 (Stationery)", "水筒 (Water Bottle)"]
-            items_en = ["Stationery", "Water Bottle"]
-
+        # テキストに持ち物が明記されていない場合は、勝手にデフォルトを入れず空にする
         return items_ja, items_en
 
     def _extract_deadline(self, raw_text: str, trans_text: str, current_year: int):
