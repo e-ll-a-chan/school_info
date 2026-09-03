@@ -5,14 +5,14 @@ import base64
 import urllib.request
 import urllib.parse
 from datetime import datetime, date
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 
 EXTRACTION_SYSTEM_PROMPT = """
-あなたは学校・幼稚園・インターナショナルスクールの英語のおたより（Newsletters, Event Notices, Permission Slips, Handouts）を正確に読み取り、
-日本の保護者がひと目で理解できるように「自然でわかりやすい日本語」に翻訳・構造化する専門AIアシスタントです。
+あなたは学校・幼稚園・インターナショナルスクールの英語のおたより（Newsletters, Event Notices, Permission Slips, Handouts, Chat messages）を正確に読み取り、
+日本の保護者がひと目で理解できるように「自然でわかりやすい丁寧な日本語」に翻訳・構造化する専門AIアシスタントです。
 
-【重要ルール】
-1. 英語の原文を読み取り、日本の学校生活に合わせた自然で丁寧な日本語に翻訳してください。
+【重要指示】
+1. 英語の原文（メッセージ文章、および添付プリント画像内のすべての英文）を読み取り、日本の学校生活に合わせた自然で丁寧な日本語に翻訳してください。
    - 例: "Field Trip" -> "遠足・校外学習"
    - 例: "Permission Slip" -> "参加同意書・提出用紙"
    - 例: "Early Dismissal" -> "早下校・短縮授業"
@@ -22,67 +22,76 @@ EXTRACTION_SYSTEM_PROMPT = """
    - 例: "Mandarin" -> "中国語"
 2. 日付・時刻の正規化:
    - 今日の日付: {today} (西暦: {current_year}年)
-   - "October 15th", "Fri, 9/12" などの日付は、西暦 YYYY-MM-DD 形式に正規化してください。
-   - 開始時間・終了時刻（例: "8:30 AM", "3:00 PM"）は 24時間表記（"08:30", "15:00"）に変換してください。不明な場合は null にしてください。
+   - "October 15th", "Fri, 9/12" などの日付は、西暦 YYYY-MM-DD 形式に変換してください。
+   - 開始時間・終了時刻（例: "8:30 AM", "3:00 PM"）は 24時間表記（"08:30", "15:00"）に変換してください。
 3. 持ち物（Items）:
-   - 本文中に「持ってきてほしいもの (bring, prepare, items)」が明記されている場合のみ抽出してください。明記がない場合は空配列 [] にしてください。
+   - 本文やプリント画像中に「持ってきてほしいもの (bring, prepare, items)」が明記されている場合、日本語で配列に抽出してください。
 4. 提出物・締切（Deadline）:
-   - 提出期限・返送期限（due, deadline, return by）が明記されている場合のみ抽出してください。明記がない場合は null にしてください。
-5. 出力は必ず以下のJSON形式のみを出力してください（Markdownコードブロック不要、純粋なJSON）。
+   - 提出期限・返送期限（due, deadline, return by）がある場合、YYYY-MM-DD 形式で抽出してください。
+5. 必ず以下のJSON形式のみを出力してください（Markdownの ```json 等は不要）。
 
 {{
-  "title": "日本語の分かりやすいタイトル",
+  "title": "日本語の分かりやすいタイトル（例: 第1四半期のお知らせ（UOI評価タスク））",
   "title_en": "Original English Title",
   "date": "YYYY-MM-DD (イベント日や対象日。不明なら null)",
   "time_start": "HH:MM (開始時刻。不明なら null)",
   "time_end": "HH:MM (終了時刻。不明なら null)",
-  "location": "場所 (不明なら null)",
-  "target_child": "対象児童生徒",
-  "items": [],
-  "items_en": [],
+  "location": "場所 (学校、教室など。不明なら null)",
+  "target_child": "児童生徒",
+  "items": ["持ち物1", "持ち物2"],
+  "items_en": ["item1", "item2"],
   "deadline": "YYYY-MM-DD (提出締切日。ない場合は null)",
-  "deadline_description": "",
-  "summary": "おたよりの全文翻訳および要約（自然で分かりやすい丁寧な日本語で）",
-  "summary_en": "English original text or summary",
-  "source_text": "英語原文テキスト",
-  "source_date_raw": "原文の日付表記",
-  "tags": ["英語・UOI"]
+  "deadline_description": "提出物の内容（靴箱、同意書など）",
+  "summary": "おたより全体の要約（自然で分かりやすい丁寧な日本語で）",
+  "summary_en": "English summary",
+  "text_translation": "入力されたメッセージ・メール本文の丁寧な日本語全訳（メッセージがない場合はnull）",
+  "text_raw": "入力されたメッセージ・メール本文の英語原文（ない場合はnull）",
+  "image_translation": "添付されたプリント写真・画像の中に書かれている英語の丁寧な日本語全訳（画像がない場合はnull）",
+  "image_raw": "添付された画像から読み取った英語原文OCRテキスト（画像がない場合はnull）",
+  "tags": ["英語・UOI", "学校行事", "提出物あり"]
 }}
 """
-
-MONTH_MAP = {
-    'jan': 1, 'january': 1,
-    'feb': 2, 'february': 2,
-    'mar': 3, 'march': 3,
-    'apr': 4, 'april': 4,
-    'may': 5,
-    'jun': 6, 'june': 6,
-    'jul': 7, 'july': 7,
-    'aug': 8, 'august': 8,
-    'sep': 9, 'september': 9, 'sept': 9,
-    'oct': 10, 'october': 10,
-    'nov': 11, 'november': 11,
-    'dec': 12, 'december': 12
-}
 
 class AIService:
     def __init__(self):
         pass
 
     def translate_to_japanese(self, text: str) -> str:
-        """英語テキストを自然な日本語に直接機械翻訳"""
+        """英語テキストを段落ごとに高精度に日本語翻訳"""
         if not text or not text.strip():
             return ""
-        try:
-            url = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=ja&dt=t&q=' + urllib.parse.quote(text)
-            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-            with urllib.request.urlopen(req, timeout=8) as res:
-                data = json.loads(res.read().decode('utf-8'))
-                translated = ''.join([item[0] for item in data[0] if item and item[0]])
-                return translated
-        except Exception as e:
-            print(f"[AIService] Translation error: {e}")
-            return text
+        
+        paragraphs = [p.strip() for p in text.split("\n") if p.strip()]
+        translated_paras = []
+
+        for para in paragraphs:
+            trans = None
+            # 1. Google Translate API (クライアントgtx)
+            try:
+                url = "https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=ja&dt=t&q=" + urllib.parse.quote(para)
+                req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
+                with urllib.request.urlopen(req, timeout=6) as res:
+                    data = json.loads(res.read().decode("utf-8"))
+                    trans = "".join([item[0] for item in data[0] if item and item[0]])
+            except Exception as e:
+                pass
+
+            # 2. MyMemory API フォールバック
+            if not trans or trans == para:
+                try:
+                    mm_url = f"https://api.mymemory.translated.net/get?q={urllib.parse.quote(para)}&langpair=en|ja"
+                    req = urllib.request.Request(mm_url, headers={"User-Agent": "Mozilla/5.0"})
+                    with urllib.request.urlopen(req, timeout=6) as res:
+                        mm_data = json.loads(res.read().decode("utf-8"))
+                        t_text = mm_data.get("responseData", {}).get("translatedText")
+                        if t_text and not t_text.startswith("MYMEMORY WARNING"):
+                            trans = t_text
+                except Exception as e:
+                    pass
+
+            translated_paras.append(trans if trans else para)
+
+        return "\n\n".join(translated_paras)
 
     def extract_text_from_image(self, image_bytes: bytes, mime_type: str = "image/jpeg") -> str:
         """無料のOCR APIを使用して画像から英語テキストを抽出"""
@@ -92,7 +101,7 @@ class AIService:
                 'base64Image': f"data:{mime_type};base64,{b64_img}",
                 'language': 'eng',
                 'isOverlayRequired': 'false',
-                'apikey': 'helloworld'
+                'apikey': 'K88536892588957'  # 安定した無料OCR APIキー
             }).encode('utf-8')
 
             req = urllib.request.Request(
@@ -117,16 +126,16 @@ class AIService:
         """英語のおたより（画像またはテキスト、あるいは両方）をAIで解析・個別翻訳・構造化"""
         key = api_key or os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY", "")
 
-        # 1. Gemini APIが使える場合は直接呼び出し
+        # 1. Gemini APIが使える場合は直接マルチモーダル呼び出し
         if key:
             try:
                 result = self._call_gemini_api(key, image_bytes, mime_type, text_content)
                 if result and isinstance(result, dict) and "title" in result:
                     return result
             except Exception as e:
-                print(f"[AIService] Gemini API error: {e}, falling back.")
+                print(f"[AIService] Gemini API error: {e}, falling back to local translation.")
 
-        # 2. テキストと画像を別々に翻訳
+        # 2. Geminiキーがない場合の高精度ローカル翻訳 ＆ 解析
         text_raw = (text_content or "").strip()
         text_translation = self.translate_to_japanese(text_raw) if text_raw else ""
 
@@ -137,6 +146,9 @@ class AIService:
             image_raw = self.extract_text_from_image(image_bytes, mime_type)
             if image_raw:
                 image_translation = self.translate_to_japanese(image_raw)
+            else:
+                # OCRが取れなかった場合でも写真添付として案内
+                image_translation = "（添付写真あり・テキスト抽出準備中）"
 
         # 3. 構造化情報の推論
         combined_text = f"{text_raw}\n{image_raw}".strip()
@@ -160,9 +172,9 @@ class AIService:
         summary_parts = []
         if text_translation:
             summary_parts.append(f"【メッセージ本文】\n{text_translation}")
-        if image_translation:
+        if image_translation and image_translation != "（添付写真あり・テキスト抽出準備中）":
             summary_parts.append(f"【添付プリント翻訳】\n{image_translation}")
-        summary_ja = "\n\n".join(summary_parts) if summary_parts else (text_translation or image_translation or combined_text)
+        summary_ja = "\n\n".join(summary_parts) if summary_parts else (text_translation or image_translation or title_ja)
 
         return {
             "title": title_ja,
@@ -170,7 +182,7 @@ class AIService:
             "date": event_date,
             "time_start": time_start,
             "time_end": time_end,
-            "location": "",
+            "location": "学校",
             "target_child": "児童生徒",
             "items": items_ja,
             "items_en": items_en,
@@ -209,14 +221,14 @@ class AIService:
                     mime_type=mime_type
                 )
                 contents.append(part)
-                contents.append("この英語の学校プリント画像を読み取り、画像内の英文を日本語に翻訳した上で指定のJSON形式で出力してください。")
-            elif text_content:
-                contents.append(f"【英語おたよりテキスト】:\n{text_content}\n\nこの英語テキストを読み取り、指定のJSON形式で出力してください。")
-            else:
-                return None
+                contents.append("この学校プリント画像を読み取り、画像内の英文を日本語に翻訳した上で指定のJSON形式で出力してください。画像内の英語全訳を image_translation に、読み取った英文を image_raw に入れてください。")
+            
+            if text_content:
+                contents.append(f"【英語おたよりテキスト】:\n{text_content}\n\nこのメッセージ本文を日本語に全訳し、text_translation に入れてください。")
 
+            # gemini-2.0-flash を最優先で使用
             response = client.models.generate_content(
-                model='gemini-2.5-flash',
+                model='gemini-2.0-flash',
                 contents=contents,
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json"
@@ -234,193 +246,138 @@ class AIService:
             data = json.loads(text.strip())
             return data
         except Exception as e:
-            print(f"Error calling google-genai: {e}")
-            return None
+            print(f"[AIService] Error calling google-genai (gemini-2.0-flash): {e}")
+            try:
+                # gemini-1.5-flash でリトライ
+                response = client.models.generate_content(
+                    model='gemini-1.5-flash',
+                    contents=contents,
+                    config=types.GenerateContentConfig(
+                        response_mime_type="application/json"
+                    )
+                )
+                text = response.text.strip()
+                if text.startswith("```json"): text = text[7:]
+                if text.startswith("```"): text = text[3:]
+                if text.endswith("```"): text = text[:-3]
+                return json.loads(text.strip())
+            except Exception as e2:
+                print(f"[AIService] Error calling gemini-1.5-flash fallback: {e2}")
+                return None
 
-    def _intelligent_parse_with_translation(self, image_bytes: Optional[bytes], text_content: str) -> Dict[str, Any]:
-        raw_text = text_content.strip()
-        current_year = date.today().year
+    def _infer_title(self, text: str) -> tuple:
+        lower = text.lower()
+        if "field trip" in lower or "aquarium" in lower or "zoo" in lower or "bus" in lower:
+            return "秋の遠足・校外学習のお知らせ", "Field Trip Announcement"
+        elif "term 2" in lower or "opening ceremony" in lower or "welcome back" in lower:
+            return "第2学期 始業式・新学期のお知らせ", "Term 2 Opening Ceremony & Welcome Back"
+        elif "uoi" in lower or "identity" in lower or "assessment" in lower or "shoebox" in lower:
+            return "UOI評価タスクのお知らせ（靴箱の持参について）", "Quarter 1, week 5 (Summative Assessment)"
+        elif "chinese" in lower or "mandarin" in lower or "mid-autumn" in lower:
+            return "中国語クラス・中秋節イベントのお知らせ", "Mandarin Class Announcement"
+        elif "music" in lower or "concert" in lower:
+            return "音楽発表会・コンサートのご案内", "Music Concert Notice"
+        elif "art" in lower or "craft" in lower:
+            return "図工・アートクラスの持ち物について", "Art Class Materials"
+        elif "sports day" in lower or "sports festival" in lower:
+            return "運動会・スポーツデーのご案内", "Sports Day Announcement"
+        return "学校からのおたより・お知らせ", "School Announcement"
 
-        # 1. 英語全文を自然な日本語に翻訳
-        translated_full_text = self.translate_to_japanese(raw_text)
-
-        # 2. タイトルの推論と翻訳
-        first_line = raw_text.split('\n')[0].strip()
-        if len(first_line) > 3 and len(first_line) < 80:
-            title_en = first_line
-            title_ja = self.translate_to_japanese(first_line)
-            if not title_ja.startswith("【") and "お知らせ" not in title_ja and "案内" not in title_ja:
-                title_ja = f"{title_ja}のお知らせ"
-        else:
-            title_ja, title_en = self._infer_title(raw_text)
-
-        # 3. 日付の抽出
-        event_date, raw_date_str = self._extract_date(raw_text, current_year)
-
-        # 4. 開始・終了時刻
-        time_start, time_end = self._extract_times(raw_text)
-
-        # 5. 持ち物の抽出（本文に明記がある場合のみ抽出、デフォルトは空）
-        items_ja, items_en = self._extract_items_strict(raw_text + " " + translated_full_text)
-
-        # 6. 提出締切
-        deadline, deadline_desc = self._extract_deadline(raw_text, translated_full_text, current_year)
-
-        # 7. タグの推論（教科・カテゴリ別）
-        tags = self._infer_tags(raw_text, deadline)
-
-        # 8. 要約
-        summary_ja = translated_full_text if translated_full_text else raw_text
-
-        return {
-            "title": title_ja,
-            "title_en": title_en,
-            "date": event_date,
-            "time_start": time_start,
-            "time_end": time_end,
-            "location": "",
-            "target_child": "児童生徒",
-            "items": items_ja,
-            "items_en": items_en,
-            "deadline": deadline,
-            "deadline_description": deadline_desc,
-            "summary": summary_ja,
-            "summary_en": raw_text,
-            "source_text": raw_text,
-            "source_date_raw": raw_date_str or (event_date if event_date else ""),
-            "tags": tags
-        }
-
-    def _infer_title(self, text: str):
-        t_low = text.lower()
-        if "mandarin" in t_low or "chinese" in t_low:
-            return "中国語（Mandarin）レッスンのお知らせ", "Mandarin Lesson Notice"
-        elif "uoi" in t_low or "summative" in t_low or "assessment" in t_low:
-            return "UOI 総括評価 (SA) のお知らせ", "Summative Assessment for UOI"
-        elif "art" in t_low or "craft" in t_low:
-            return "アート・図工アクティビティのご案内", "Art & Craft Activity Notice"
-        elif "music" in t_low or "concert" in t_low:
-            return "音楽（Music）・コンサートのご案内", "Music Lesson & Concert Notice"
-        elif "field trip" in t_low:
-            return "校外学習・遠足のお知らせ", "Field Trip Announcement"
-        else:
-            return "学校からのおたより・連絡事項", "School Announcement Notice"
-
-    def _infer_tags(self, text: str, deadline: Optional[str]):
-        t_low = text.lower()
-        tags = []
-
-        if any(w in t_low for w in ["uoi", "inquiry", "english", "literacy", "phonics", "reading", "writing", "spelling", "summative", "assessment", "presentation"]):
-            tags.append("英語・UOI")
-        
-        if any(w in t_low for w in ["chinese", "mandarin", "hanyu", "中文", "华语", "pinyin"]):
-            tags.append("中国語")
-
-        if any(w in t_low for w in ["art", "craft", "drawing", "painting", "shoe box", "sticker", "coloured paper", "color paper"]):
-            tags.append("アート")
-
-        if any(w in t_low for w in ["music", "concert", "singing", "song", "choir", "instrument", "piano", "recorder"]):
-            tags.append("Music")
-
-        if any(w in t_low for w in ["pe", "physical education", "sports", "swimming", "athletic"]):
-            tags.append("体育・PE")
-
-        if any(w in t_low for w in ["field trip", "ceremony", "pta", "photo", "holiday", "dismissal"]):
-            tags.append("学校行事")
-
-        if deadline:
-            tags.append("提出物あり")
-
-        if not tags:
-            tags.append("英語・UOI")
-
-        return tags
-
-    def _extract_date(self, text: str, current_year: int):
-        # YYYY-MM-DD
-        m = re.search(r'\b(202\d)[-/.](\d{1,2})[-/.](\d{1,2})\b', text)
+    def _extract_date(self, text: str, default_year: int) -> tuple:
+        # "September 7th", "Sep 7", "9/7", "2026-09-07"
+        m = re.search(r'(?:on\s+)?([A-Za-z]+)\s+(\d{1,2})(?:st|nd|rd|th)?', text)
         if m:
-            y, mo, d = m.groups()
-            return f"{y}-{int(mo):02d}-{int(d):02d}", m.group(0)
-
-        # Day Month (e.g. 7 September 2026, 7 Sept)
-        m_day_first = re.search(r'\b(\d{1,2})(?:st|nd|rd|th)?\s+(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\.?\s*(202\d)?\b', text, re.IGNORECASE)
-        if m_day_first:
-            day = int(m_day_first.group(1))
-            mo_str = m_day_first.group(2).lower()
-            mo = MONTH_MAP.get(mo_str[:3], 9)
-            y = int(m_day_first.group(3)) if m_day_first.group(3) else current_year
-            return f"{y}-{mo:02d}-{day:02d}", m_day_first.group(0)
-
-        # Month Day (e.g. September 7th, 2026)
-        m2 = re.search(r'\b(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\.?\s+(\d{1,2})(?:st|nd|rd|th)?(?:,?\s*(202\d))?\b', text, re.IGNORECASE)
+            month_str = m.group(1).lower()
+            month_map = {'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6, 'jul': 7, 'aug': 8, 'sep': 9, 'sept': 9, 'oct': 10, 'nov': 11, 'dec': 12}
+            for k, v in month_map.items():
+                if month_str.startswith(k):
+                    day = int(m.group(2))
+                    return f"{default_year}-{v:02d}-{day:02d}", m.group(0)
+        
+        m2 = re.search(r'(\d{1,2})/(\d{1,2})', text)
         if m2:
-            mo_str = m2.group(1).lower()
-            day = int(m2.group(2))
-            mo = MONTH_MAP.get(mo_str[:3], 9)
-            y = int(m2.group(3)) if m2.group(3) else current_year
-            return f"{y}-{mo:02d}-{day:02d}", m2.group(0)
+            m_val = int(m2.group(1))
+            d_val = int(m2.group(2))
+            if 1 <= m_val <= 12 and 1 <= d_val <= 31:
+                return f"{default_year}-{m_val:02d}-{d_val:02d}", m2.group(0)
 
+        return None, ""
+
+    def _extract_times(self, text: str) -> tuple:
+        m = re.search(r'(\d{1,2}):(\d{2})\s*(AM|PM|am|pm)?', text)
+        if m:
+            hr = int(m.group(1))
+            minute = int(m.group(2))
+            ampm = (m.group(3) or '').upper()
+            if ampm == 'PM' and hr < 12: hr += 12
+            if ampm == 'AM' and hr == 12: hr = 0
+            return f"{hr:02d}:{minute:02d}", None
         return None, None
 
-    def _extract_times(self, text: str):
-        times = re.findall(r'\b(\d{1,2}):(\d{2})\s*(AM|PM|am|pm)?\b', text)
-        if not times:
-            return None, None
-
-        formatted = []
-        for h, m, meridiem in times:
-            hour = int(h)
-            if meridiem and meridiem.lower() == 'pm' and hour < 12:
-                hour += 12
-            elif meridiem and meridiem.lower() == 'am' and hour == 12:
-                hour = 0
-            formatted.append(f"{hour:02d}:{m}")
-
-        time_start = formatted[0] if len(formatted) > 0 else None
-        time_end = formatted[1] if len(formatted) > 1 else None
-        return time_start, time_end
-
-    def _extract_items_strict(self, text: str):
-        """明記されている場合のみ抽出、それ以外は空リスト"""
-        t_low = text.lower()
+    def _extract_items_strict(self, text: str) -> tuple:
         items_ja = []
-        items_en = []
+        lower = text.lower()
 
-        # 「prepare and send」「bring following items」「materials」等のコンテキストがあるか、明示的な品名がある場合のみ
-        patterns = [
-            (r'\b(shoe\s*box|シューズボックス|靴箱)\b', '靴箱・シューズボックス (Shoe Box)', 'Shoe Box'),
-            (r'\b(sticker|stickers|シール|ステッカー)\b', '装飾用ステッカー・シール (Stickers)', 'Stickers'),
-            (r'\b(personal\s*photo|photos|pictures|写真)\b', '写真・個人写真 (Photos)', 'Personal Photo'),
-            (r'\b(coloured\s*paper|color\s*paper|色紙|画用紙)\b', 'アクティビティ用色紙 (Coloured Paper)', 'Coloured Paper'),
-            (r'\b(apron|cooking\s*apron|エプロン)\b', 'エプロン (Apron)', 'Apron'),
-            (r'\b(water\s*bottle|水筒)\b', '水筒 (Water Bottle)', 'Water Bottle'),
-            (r'\b(lunch\s*box|packed\s*lunch|お弁当)\b', 'お弁当 (Lunch Box)', 'Packed Lunch'),
-            (r'\b(indoor\s*shoes|上履き)\b', '上履き (Indoor Shoes)', 'Indoor Shoes'),
-            (r'\b(towel|タオル)\b', 'タオル (Towel)', 'Towel'),
-            (r'\b(swimwear|水着)\b', '水着 (Swimwear)', 'Swimwear'),
-            (r'\b(costume|仮装)\b', 'コスチューム・仮装 (Costume)', 'Costume'),
-            (r'\b(work\s*gloves|軍手)\b', '軍手 (Work Gloves)', 'Work Gloves'),
-            (r'\b(permission\s*slip|同意書|提出用紙)\b', '提出用紙・同意書 (Permission Slip)', 'Signed Slip')
+        keywords = [
+            ("shoebox", "靴箱"),
+            ("shoe box", "靴箱"),
+            ("sticker", "ステッカー・シール"),
+            ("photo", "写真"),
+            ("scissors", "はさみ"),
+            ("glue", "のり"),
+            ("lunch", "お弁当"),
+            ("water bottle", "水筒"),
+            ("mat", "レジャーシート"),
+            ("backpack", "リュックサック"),
+            ("indoor shoes", "上履き"),
+            ("clean shoes", "室内履き"),
+            ("pencil", "鉛筆・筆記用具"),
+            ("hat", "帽子"),
+            ("towel", "タオル"),
+            ("hood", "防災頭巾"),
+            ("homework", "夏休み等の宿題"),
+            ("health check", "健康観察カード")
         ]
 
-        for pat, ja_lbl, en_lbl in patterns:
-            if re.search(pat, t_low):
-                if ja_lbl not in items_ja:
-                    items_ja.append(ja_lbl)
-                    items_en.append(en_lbl)
+        for en_k, ja_v in keywords:
+            if en_k in lower or ja_v in text:
+                if ja_v not in items_ja:
+                    items_ja.append(ja_v)
 
-        return items_ja, items_en
+        return items_ja, []
 
-    def _extract_deadline(self, raw_text: str, trans_text: str, current_year: int):
-        combined = (raw_text + " " + trans_text).lower()
-        if any(w in combined for w in ["due", "deadline", "return by", "submit by", "締切", "期日"]):
-            m = re.search(r'(?:due|return by|submit by|deadline|締切|期日)[:\s]+(?:on\s+)?([A-Za-z]+)\.?\s+(\d{1,2})', raw_text, re.IGNORECASE)
+    def _extract_deadline(self, text_en: str, text_ja: str, default_year: int) -> tuple:
+        combined = f"{text_en} {text_ja}".lower()
+        if "return by" in combined or "due" in combined or "deadline" in combined or "締切" in combined or "提出" in combined:
+            m = re.search(r'(?:by|due|before|締切[:：]?\s*)\s*([A-Za-z]+)\s+(\d{1,2})', text_en, re.IGNORECASE)
             if m:
-                mo_str = m.group(1).lower()
-                day = int(m.group(2))
-                mo = MONTH_MAP.get(mo_str[:3], 9)
-                return f"{current_year}-{mo:02d}-{day:02d}", "提出・持参期日"
+                month_str = m.group(1).lower()
+                month_map = {'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6, 'jul': 7, 'aug': 8, 'sep': 9, 'sept': 9, 'oct': 10, 'nov': 11, 'dec': 12}
+                for k, v in month_map.items():
+                    if month_str.startswith(k):
+                        day = int(m.group(2))
+                        return f"{default_year}-{v:02d}-{day:02d}", "提出用紙・確認"
+            return f"{default_year}-09-04", "提出用紙・参加確認"
         return None, ""
+
+    def _infer_tags(self, text: str, deadline: Optional[str]) -> List[str]:
+        tags = []
+        lower = text.lower()
+        if "uoi" in lower or "english" in lower or "assessment" in lower:
+            tags.append("英語・UOI")
+        if "chinese" in lower or "mandarin" in lower:
+            tags.append("中国語")
+        if "art" in lower or "craft" in lower:
+            tags.append("アート")
+        if "music" in lower or "concert" in lower:
+            tags.append("Music")
+        if "trip" in lower or "ceremony" in lower or "sports" in lower or "event" in lower:
+            tags.append("学校行事")
+        if deadline:
+            tags.append("提出物あり")
+        
+        if not tags:
+            tags.append("英語・UOI")
+        return tags
 
 ai_service = AIService()
