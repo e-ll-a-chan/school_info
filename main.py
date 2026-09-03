@@ -402,6 +402,9 @@ def get_post_detail_page(post_id: str):
         <span>← 一覧に戻る</span>
       </a>
       <div class="flex items-center gap-1.5">
+        <a href="/edit/{post_id}" class="px-3 py-1.5 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs shadow-sm flex items-center gap-1 transition">
+          <span>✏️ 編集</span>
+        </a>
         <a href="{line_url}" target="_blank" class="px-3 py-1.5 rounded-full bg-[#06C755] text-white font-bold text-xs shadow-sm flex items-center gap-1">
           <span>LINE共有</span>
         </a>
@@ -480,6 +483,298 @@ def get_post_detail_page(post_id: str):
 </html>
 '''
     return HTMLResponse(content=rendered, headers={
+        "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
+        "Pragma": "no-cache",
+        "Expires": "0"
+    })
+
+@app.get("/edit/{post_id}")
+def get_edit_post_page(post_id: str):
+    post = db.get_post_by_id(post_id)
+    if not post:
+        posts = db.get_all_posts()
+        post = next((p for p in posts if str(p.get("id")) == str(post_id)), None)
+    if not post:
+        raise HTTPException(status_code=404, detail="おたよりが見つかりませんでした")
+
+    title = html.escape(str(post.get("title") or ""))
+    title_en = html.escape(str(post.get("title_en") or ""))
+    text_trans = html.escape(str(post.get("text_translation") or (post.get("summary") if not post.get("image_translation") else "") or ""))
+    text_raw = html.escape(str(post.get("text_raw") or (post.get("source_text") if not post.get("image_raw") else "") or ""))
+    image_trans = html.escape(str(post.get("image_translation") or ""))
+    image_raw = html.escape(str(post.get("image_raw") or ""))
+    date_val = html.escape(str(post.get("date") or ""))
+    time_start = html.escape(str(post.get("time_start") or ""))
+    location = html.escape(str(post.get("location") or ""))
+    deadline = html.escape(str(post.get("deadline") or ""))
+    deadline_desc = html.escape(str(post.get("deadline_description") or ""))
+    items_str = html.escape(", ".join(post.get("items") or []))
+    image_url = html.escape(str(post.get("image_url") or ""))
+    tags_json = json.dumps(post.get("tags") or ["英語・UOI"], ensure_ascii=False)
+
+    image_preview_style = "" if image_url else "display: none;"
+
+    edit_html = f'''<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>おたよりを編集 - School Info</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/static/style.css?v=20260903_1100">
+</head>
+<body class="bg-stone-100 min-h-screen text-stone-800 antialiased flex justify-center py-0 sm:py-6">
+  <div class="w-full max-w-lg bg-white min-h-screen sm:min-h-0 sm:rounded-3xl shadow-xl flex flex-col overflow-hidden">
+    
+    <!-- ヘッダー -->
+    <header class="px-4 py-3.5 bg-white border-b border-stone-200/80 flex items-center justify-between sticky top-0 z-30 shadow-sm">
+      <a href="/post/{post_id}" class="flex items-center gap-1.5 text-xs font-bold text-stone-600 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 px-3.5 py-2 rounded-full transition">
+        <span>← キャンセル</span>
+      </a>
+      <h2 class="font-extrabold text-sm text-stone-800 flex items-center gap-1.5">
+        <span>✏️ おたよりを編集</span>
+      </h2>
+      <div class="w-16"></div>
+    </header>
+
+    <!-- メインコンテンツ -->
+    <main class="p-5 space-y-5 flex-1 overflow-y-auto">
+      <form id="editForm" onsubmit="submitEdit(event)" class="space-y-5">
+
+        <!-- 添付画像プレビュー ＆ 変更 -->
+        <div class="p-3.5 bg-stone-50 rounded-2xl border border-stone-200 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-stone-700">🖼️ 添付プリント写真</span>
+            <button type="button" onclick="removeImage()" class="text-xs text-red-500 font-bold hover:underline">写真を削除</button>
+          </div>
+          
+          <div id="imagePreviewBox" style="{image_preview_style}" class="w-full h-44 bg-white rounded-xl overflow-hidden flex items-center justify-center border border-stone-200">
+            <img id="previewImageEl" src="{image_url}" class="w-full h-full object-contain" alt="添付写真">
+          </div>
+
+          <div class="pt-1">
+            <input type="file" id="editFileInput" accept="image/*,application/pdf" class="hidden" onchange="handleEditFileChange(event)">
+            <button type="button" onclick="document.getElementById('editFileInput').click()" class="w-full py-2.5 px-3 rounded-xl bg-white border border-stone-300 hover:bg-stone-100 text-xs font-bold text-stone-700 flex items-center justify-center gap-1.5 transition shadow-sm">
+              <span>📷 写真を変更・再撮影する</span>
+            </button>
+            <p id="editFileStatus" class="hidden text-[11px] text-emerald-600 font-bold mt-1 text-center"></p>
+          </div>
+        </div>
+
+        <!-- タイトル -->
+        <div class="space-y-1.5">
+          <label class="text-xs font-bold text-stone-700 block">📌 タイトル（日本語） <span class="text-red-500">*</span></label>
+          <input type="text" id="postTitle" required value="{title}" placeholder="例: 第1四半期のお知らせ（UOI評価タスク）"
+                 class="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-emerald-400">
+        </div>
+
+        <!-- 英語原題 -->
+        <div class="space-y-1.5">
+          <label class="text-xs font-bold text-stone-700 block">🇺🇸 英語の原題（タイトル）</label>
+          <input type="text" id="postTitleEn" value="{title_en}" placeholder="例: Quarter 1, week 5 (Summative Assessment)"
+                 class="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-600 focus:outline-none focus:ring-2 focus:ring-emerald-400">
+        </div>
+
+        <!-- ① 📱 メッセージ・メール本文翻訳 -->
+        <div class="p-3.5 rounded-2xl bg-amber-50/60 border border-amber-200/80 space-y-2">
+          <label class="text-xs font-bold text-amber-900 flex items-center gap-1">
+            <span>📱 メッセージ・メール本文の翻訳（日本語）</span>
+          </label>
+          <textarea id="postTextTranslation" rows="4" placeholder="メール本文や連絡事項の日本語訳"
+                    class="w-full p-3 text-xs bg-white border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400 leading-relaxed">{text_trans}</textarea>
+          
+          <details class="text-xs pt-1">
+            <summary class="font-bold text-amber-800 cursor-pointer">🇺🇸 メッセージの英語原文</summary>
+            <textarea id="postTextRaw" rows="3" placeholder="英語の本文原文"
+                      class="mt-1.5 w-full p-2.5 text-[11px] bg-white border border-stone-200 rounded-xl font-mono text-stone-600">{text_raw}</textarea>
+          </details>
+        </div>
+
+        <!-- ② 🖼️ 添付画像の翻訳 -->
+        <div class="p-3.5 rounded-2xl bg-sky-50/60 border border-sky-200/80 space-y-2">
+          <label class="text-xs font-bold text-sky-900 flex items-center gap-1">
+            <span>🖼️ 添付プリント画像内の翻訳（日本語）</span>
+          </label>
+          <textarea id="postImageTranslation" rows="4" placeholder="プリント画像内に書かれている内容の日本語訳"
+                    class="w-full p-3 text-xs bg-white border border-sky-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-400 leading-relaxed">{image_trans}</textarea>
+          
+          <details class="text-xs pt-1">
+            <summary class="font-bold text-sky-800 cursor-pointer">🇺🇸 画像から読み取った英語原文 (OCR)</summary>
+            <textarea id="postImageRaw" rows="3" placeholder="画像内OCR英語テキスト"
+                      class="mt-1.5 w-full p-2.5 text-[11px] bg-white border border-stone-200 rounded-xl font-mono text-stone-600">{image_raw}</textarea>
+          </details>
+        </div>
+
+        <!-- 日時・場所・締切 -->
+        <div class="p-3.5 bg-stone-50 rounded-2xl border border-stone-200 space-y-3">
+          <h4 class="text-xs font-bold text-stone-800">📅 日程 ＆ 場所</h4>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-[11px] text-stone-600 block mb-1">日付</label>
+              <input type="date" id="postDate" value="{date_val}" class="w-full p-2 bg-white border border-stone-200 rounded-xl text-xs">
+            </div>
+            <div>
+              <label class="text-[11px] text-stone-600 block mb-1">開始時間</label>
+              <input type="time" id="postTimeStart" value="{time_start}" class="w-full p-2 bg-white border border-stone-200 rounded-xl text-xs">
+            </div>
+          </div>
+          <div>
+            <label class="text-[11px] text-stone-600 block mb-1">場所</label>
+            <input type="text" id="postLocation" value="{location}" placeholder="学校 / 各教室など" class="w-full p-2 bg-white border border-stone-200 rounded-xl text-xs">
+          </div>
+          <div class="grid grid-cols-2 gap-2 border-t border-stone-200/60 pt-2">
+            <div>
+              <label class="text-[11px] text-red-600 font-bold block mb-1">⚠️ 提出締切日</label>
+              <input type="date" id="postDeadline" value="{deadline}" class="w-full p-2 bg-white border border-red-200 rounded-xl text-xs">
+            </div>
+            <div>
+              <label class="text-[11px] text-stone-600 block mb-1">提出物の内容</label>
+              <input type="text" id="postDeadlineDesc" value="{deadline_desc}" placeholder="靴箱・写真など" class="w-full p-2 bg-white border border-stone-200 rounded-xl text-xs">
+            </div>
+          </div>
+        </div>
+
+        <!-- 持ち物リスト -->
+        <div class="space-y-1.5">
+          <label class="text-xs font-bold text-stone-700 block">🎒 持ち物・持参するもの（カンマ区切り）</label>
+          <input type="text" id="postItems" value="{items_str}" placeholder="靴箱, ステッカー, 写真, はさみ"
+                 class="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-400">
+        </div>
+
+        <!-- タグ選択 -->
+        <div class="space-y-1.5">
+          <label class="text-xs font-bold text-stone-700 block">🏷️ タグ</label>
+          <div id="tagContainer" class="flex flex-wrap gap-1.5 pt-1"></div>
+        </div>
+
+        <!-- 保存ボタン -->
+        <div class="pt-3 pb-8">
+          <button type="submit" id="saveEditBtn" class="w-full py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-black text-sm shadow-xl shadow-emerald-600/30 transition flex items-center justify-center gap-2">
+            <span>💾 変更を保存する</span>
+          </button>
+        </div>
+
+      </form>
+    </main>
+  </div>
+
+  <script>
+    const postId = "{post_id}";
+    let currentUploadedImageUrl = "{image_url}";
+    let selectedTags = {tags_json};
+    const ALL_TAGS = ['英語・UOI', '中国語', 'アート', 'Music', '学校行事', '提出物あり'];
+
+    function renderTags() {{
+      const container = document.getElementById('tagContainer');
+      container.innerHTML = ALL_TAGS.map(t => {{
+        const isSel = selectedTags.includes(t);
+        const bg = isSel ? 'bg-stone-800 text-white font-bold' : 'bg-stone-100 text-stone-600 hover:bg-stone-200';
+        return `<button type="button" onclick="toggleTag('${{t}}')" class="px-3 py-1.5 rounded-full text-xs transition ${{bg}}">${{t}}</button>`;
+      }}).join('');
+    }}
+
+    function toggleTag(t) {{
+      if (selectedTags.includes(t)) {{
+        selectedTags = selectedTags.filter(x => x !== t);
+      }} else {{
+        selectedTags.push(t);
+      }}
+      renderTags();
+    }}
+
+    async function handleEditFileChange(e) {{
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const statusEl = document.getElementById('editFileStatus');
+      statusEl.innerText = '写真をアップロード中...';
+      statusEl.classList.remove('hidden');
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {{
+        const res = await fetch('/api/upload', {{ method: 'POST', body: formData }});
+        if (!res.ok) throw new Error(`HTTP ${{res.status}}`);
+        const data = await res.json();
+        if (data.image_url) {{
+          currentUploadedImageUrl = data.image_url;
+          document.getElementById('previewImageEl').src = data.image_url;
+          document.getElementById('imagePreviewBox').style.display = 'flex';
+          statusEl.innerText = '✅ 写真を更新しました';
+        }}
+      }} catch (err) {{
+        alert('写真のアップロードに失敗しました: ' + err.message);
+        statusEl.innerText = '❌ 写真のアップロードに失敗しました';
+      }}
+    }}
+
+    function removeImage() {{
+      currentUploadedImageUrl = null;
+      document.getElementById('imagePreviewBox').style.display = 'none';
+      document.getElementById('previewImageEl').src = '';
+      const statusEl = document.getElementById('editFileStatus');
+      statusEl.innerText = '写真を削除しました';
+      statusEl.classList.remove('hidden');
+    }}
+
+    async function submitEdit(e) {{
+      e.preventDefault();
+      const title = document.getElementById('postTitle').value.trim();
+      if (!title) {{
+        alert('タイトルを入力してください');
+        return;
+      }}
+
+      const itemsStr = document.getElementById('postItems').value;
+      const itemsArr = itemsStr ? itemsStr.split(',').map(s => s.trim()).filter(Boolean) : [];
+
+      const updateData = {{
+        title: title,
+        title_en: document.getElementById('postTitleEn').value.trim() || null,
+        text_translation: document.getElementById('postTextTranslation').value.trim() || null,
+        text_raw: document.getElementById('postTextRaw').value.trim() || null,
+        image_translation: document.getElementById('postImageTranslation').value.trim() || null,
+        image_raw: document.getElementById('postImageRaw').value.trim() || null,
+        summary: document.getElementById('postTextTranslation').value.trim() || document.getElementById('postImageTranslation').value.trim() || title,
+        date: document.getElementById('postDate').value || null,
+        time_start: document.getElementById('postTimeStart').value || null,
+        location: document.getElementById('postLocation').value.trim() || null,
+        deadline: document.getElementById('postDeadline').value || null,
+        deadline_description: document.getElementById('postDeadlineDesc').value.trim() || null,
+        items: itemsArr,
+        tags: selectedTags,
+        image_url: currentUploadedImageUrl
+      }};
+
+      try {{
+        const btn = document.getElementById('saveEditBtn');
+        btn.disabled = true;
+        btn.innerText = '保存中...';
+
+        const res = await fetch('/api/posts/' + postId, {{
+          method: 'PUT',
+          headers: {{ 'Content-Type': 'application/json' }},
+          body: JSON.stringify(updateData)
+        }});
+
+        if (!res.ok) throw new Error(`HTTP ${{res.status}}`);
+        
+        // 詳細ページにリダイレクト
+        window.location.href = '/post/' + postId;
+      }} catch (err) {{
+        alert('保存エラー: ' + err.message);
+        document.getElementById('saveEditBtn').disabled = false;
+        document.getElementById('saveEditBtn').innerText = '💾 変更を保存する';
+      }}
+    }}
+
+    renderTags();
+  </script>
+</body>
+</html>
+'''
+    return HTMLResponse(content=edit_html, headers={
         "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
         "Pragma": "no-cache",
         "Expires": "0"
