@@ -85,8 +85,8 @@ const INITIAL_SAMPLE_POSTS = [
     summary_en: "Mid-Autumn Festival celebration in Mandarin class. Please bring handmade lanterns.",
     text_translation: "中国語クラスより中秋節のお祝いイベントのご案内です。\n当日は月餅の試食や伝統的なランタンパレードを行います。\n手作りランタンをお持ちの上、可能であれば伝統衣装を着用してご登校ください。",
     text_raw: "Mandarin Class Announcement: Mid-Autumn Festival Celebration on Sep 25th. Bring handmade lantern and traditional costume.",
-    image_translation: "中秋節イベント詳細：月餅作り体験、ランタンフェスティバル",
-    image_raw: "Mid-Autumn Festival Details: Mooncake tasting, Lantern parade.",
+    image_translation: null,
+    image_raw: null,
     tags: ["中国語", "学校行事"],
     image_url: null,
     created_at: "2026-09-01T10:00:00.000Z"
@@ -446,11 +446,13 @@ function renderDetailPage(postId) {
   const deadline = post.deadline || '';
   const deadlineDesc = escapeHtml(post.deadline_description || '提出');
   const items = post.items || [];
-  const textTrans = post.text_translation || (post.image_translation ? '' : post.summary) || '';
-  const textRaw = post.text_raw || (post.image_raw ? '' : post.source_text) || '';
-  const imgUrl = post.image_url || '';
-  const imgTrans = post.image_translation || '';
-  const imgRaw = post.image_raw || '';
+  
+  // テキストと画像の存在確認（空文字なら表示しない）
+  const textTrans = (post.text_translation || '').trim();
+  const textRaw = (post.text_raw || '').trim();
+  const imgUrl = (post.image_url || '').trim();
+  const imgTrans = (post.image_translation || '').trim();
+  const imgRaw = (post.image_raw || '').trim();
 
   const tagsHtml = (post.tags || []).map(t => {
     let color = 'bg-stone-100 text-stone-600', icon = '🏷️';
@@ -499,12 +501,13 @@ function renderDetailPage(postId) {
     </div>
   ` : '';
 
+  // ① メッセージカード（メッセージ本文がある場合のみ表示）
   const textCardHtml = (textTrans || textRaw) ? `
     <div class="p-4 rounded-2xl bg-amber-50/50 border border-amber-200/80 space-y-3">
       <h4 class="text-xs font-bold text-amber-900 flex items-center gap-1.5">
         <span>📱 メッセージ・メール本文の翻訳</span>
       </h4>
-      <div class="text-xs leading-relaxed text-stone-800 bg-white p-3.5 rounded-xl border border-amber-200/50 whitespace-pre-wrap">${escapeHtml(textTrans || '本文翻訳なし')}</div>
+      ${textTrans ? `<div class="text-xs leading-relaxed text-stone-800 bg-white p-3.5 rounded-xl border border-amber-200/50 whitespace-pre-wrap">${escapeHtml(textTrans)}</div>` : ''}
       ${textRaw ? `
         <details class="text-xs pt-1">
           <summary class="font-bold text-amber-700 cursor-pointer hover:text-amber-950">🇺🇸 英語の原文テキストを表示</summary>
@@ -514,6 +517,7 @@ function renderDetailPage(postId) {
     </div>
   ` : '';
 
+  // ② 添付写真カード（写真または画像翻訳がある場合のみ表示）
   const imageCardHtml = (imgUrl || imgTrans || imgRaw) ? `
     <div class="p-4 rounded-2xl bg-sky-50/50 border border-sky-200/80 space-y-3">
       <h4 class="text-xs font-bold text-sky-900 flex items-center gap-1.5">
@@ -524,7 +528,7 @@ function renderDetailPage(postId) {
           <img src="${imgUrl}" class="max-h-72 w-auto object-contain rounded-lg shadow-sm" alt="プリント" onerror="this.style.display='none'">
         </div>
       ` : ''}
-      <div class="text-xs leading-relaxed text-stone-800 bg-white p-3.5 rounded-xl border border-sky-200/50 whitespace-pre-wrap">${escapeHtml(imgTrans || '（画像内のテキスト翻訳なし）')}</div>
+      ${imgTrans ? `<div class="text-xs leading-relaxed text-stone-800 bg-white p-3.5 rounded-xl border border-sky-200/50 whitespace-pre-wrap">${escapeHtml(imgTrans)}</div>` : ''}
       ${imgRaw ? `
         <details class="text-xs pt-1">
           <summary class="font-bold text-sky-700 cursor-pointer hover:text-sky-950">🇺🇸 画像から読み取った英語原文 (OCR)</summary>
@@ -623,7 +627,6 @@ function renderNewPage() {
   document.getElementById('newSelectedFileName').classList.add('hidden');
   document.getElementById('newLoadingBox').classList.add('hidden');
   document.getElementById('newResultForm').classList.add('hidden');
-  document.getElementById('newImagePreviewBox').classList.add('hidden');
   renderNewTags();
 }
 
@@ -682,13 +685,11 @@ async function executeAIAnalyze() {
 
     let draft = null;
 
-    // 1. Gemini API Direct Call (APIキーがある場合)
     if (apiKey) {
       console.log('Using Gemini API Direct Call...');
       draft = await callGeminiDirect(apiKey, newSelectedFile, textVal);
     }
 
-    // 2. クライアントサイド自動翻訳 ＆ OCR フォールバック
     if (!draft) {
       console.log('Using Client-side Robust Translation Engine...');
       draft = await clientSideTranslateEngine(textVal, newSelectedFile, newUploadedImageUrl);
@@ -696,7 +697,7 @@ async function executeAIAnalyze() {
 
     loadingBox.classList.add('hidden');
     if (draft) {
-      populateNewForm(draft);
+      populateNewForm(draft, Boolean(textVal), Boolean(newSelectedFile || newUploadedImageUrl));
     } else {
       alert('解析結果の生成に失敗しました。');
     }
@@ -706,7 +707,7 @@ async function executeAIAnalyze() {
   }
 }
 
-// ① Gemini API 直接呼出 (CORS対応 / gemini-2.0-flash & gemini-1.5-flash)
+// ① Gemini API 直接呼出
 async function callGeminiDirect(apiKey, file, textContent) {
   const models = ['gemini-2.0-flash', 'gemini-1.5-flash'];
   
@@ -723,7 +724,7 @@ async function callGeminiDirect(apiKey, file, textContent) {
           }
         });
         parts.push({
-          text: "この学校プリント画像を読み取り、画像内の英文を日本語に翻訳した上で、指定のJSON形式のみで出力してください。image_translation に画像内の日本語全訳を、image_raw に読み取った英文を入れてください。"
+          text: "この学校プリント画像を読み取り、画像内の英文を日本語に翻訳した上で、指定のJSON形式のみで出力してください。image_translation に画像内の日本語全訳を、image_raw に読み取った英文を入れてください。メッセージテキストがない場合は text_translation と text_raw を null にしてください。"
         });
       }
 
@@ -735,7 +736,7 @@ async function callGeminiDirect(apiKey, file, textContent) {
 
       const systemPrompt = `
 あなたは学校・幼稚園・インターナショナルスクールの英語のおたよりを自然な日本語に翻訳・構造化する専門AIです。
-必ず以下のJSON形式のみを出力してください（Markdownのバッククォート不要、純粋なJSON）。
+必ず以下のJSON形式のみを出力してください（Markdownコードブロック不要、純粋なJSON）。
 
 {
   "title": "日本語の分かりやすいタイトル（例: 第1四半期のお知らせ（UOI評価タスク））",
@@ -747,10 +748,10 @@ async function callGeminiDirect(apiKey, file, textContent) {
   "deadline": "YYYY-MM-DD",
   "deadline_description": "提出物の内容",
   "summary": "おたより全体の要約（自然で丁寧な日本語）",
-  "text_translation": "メッセージ本文の丁寧な日本語全訳",
-  "text_raw": "メッセージ英語原文",
-  "image_translation": "画像内英文の丁寧な日本語全訳",
-  "image_raw": "画像内英文OCR",
+  "text_translation": "メッセージ本文の丁寧な日本語全訳（メッセージがない場合はnull）",
+  "text_raw": "メッセージ英語原文（ない場合はnull）",
+  "image_translation": "画像内英文の丁寧な日本語全訳（画像がない場合はnull）",
+  "image_raw": "画像内英文OCR（画像がない場合はnull）",
   "tags": ["英語・UOI", "学校行事", "提出物あり"]
 }
 `;
@@ -785,33 +786,30 @@ async function callGeminiDirect(apiKey, file, textContent) {
   return null;
 }
 
-// ② クライアント側高精度フォールバック翻訳エンジン (MyMemory + OCR + 内蔵辞書)
+// ② クライアント側フォールバック翻訳
 async function clientSideTranslateEngine(text, file, b64Image) {
   let textTrans = "";
   let imageRaw = "";
   let imageTrans = "";
 
-  // 1. テキストの日本語翻訳 (CORS対応 MyMemory API)
   if (text) {
     textTrans = await clientTranslate(text);
   }
 
-  // 2. 画像のOCR抽出 ＆ 日本語翻訳
   if (b64Image) {
     console.log('Extracting text from image via client OCR...');
     imageRaw = await clientOCR(b64Image);
     if (imageRaw) {
       imageTrans = await clientTranslate(imageRaw);
     } else {
-      imageTrans = "（添付写真あり・テキスト自動解析完了）";
+      imageTrans = "（添付写真あり・テキスト抽出準備中）";
     }
   }
 
-  // 3. タイトル・持ち物・日程・タグの構造化抽出
-  const combined = `${text}\n${imageRaw}`.trim();
+  const combined = `${text || ''}\n${imageRaw || ''}`.trim();
   const lower = combined.toLowerCase();
 
-  // 持ち物抽出 (学校用語辞書)
+  // 持ち物
   const items = [];
   const keywordMap = [
     ['shoebox', '靴箱・シューズボックス'],
@@ -840,7 +838,7 @@ async function clientSideTranslateEngine(text, file, b64Image) {
     }
   }
 
-  // 日付抽出
+  // 日付
   let eventDate = null;
   const dateMatch = combined.match(/(?:on\s+)?([A-Za-z]+)\s+(\d{1,2})(?:st|nd|rd|th)?/i);
   if (dateMatch) {
@@ -856,7 +854,7 @@ async function clientSideTranslateEngine(text, file, b64Image) {
     eventDate = new Date().toISOString().split('T')[0];
   }
 
-  // タイトル推論
+  // タイトル
   let titleJa = "学校からのおたより・お知らせ";
   let titleEn = combined.split('\n')[0].substring(0, 50) || "School Notice";
 
@@ -875,14 +873,14 @@ async function clientSideTranslateEngine(text, file, b64Image) {
   } else if (lower.includes('opening ceremony') || lower.includes('term 2') || lower.includes('welcome back')) {
     titleJa = "第2学期 始業式・持ち物のお知らせ";
     titleEn = "Term 2 Opening Ceremony & Welcome Back";
-  } else if (titleEn) {
+  } else if (titleEn && titleEn !== "School Notice") {
     const transFirst = await clientTranslate(titleEn);
     if (transFirst && transFirst !== titleEn) {
       titleJa = transFirst.includes('お知らせ') ? transFirst : `${transFirst}のお知らせ`;
     }
   }
 
-  // タグ推論
+  // タグ
   const tags = [];
   if (lower.includes('uoi') || lower.includes('english') || lower.includes('assessment')) tags.push('英語・UOI');
   if (lower.includes('chinese') || lower.includes('mandarin')) tags.push('中国語');
@@ -905,15 +903,15 @@ async function clientSideTranslateEngine(text, file, b64Image) {
     deadline: eventDate,
     deadline_description: items.length > 0 ? `${items[0]}等の持参` : "提出",
     summary: summaryJa,
-    text_translation: textTrans,
-    text_raw: text,
-    image_translation: imageTrans,
-    image_raw: imageRaw,
+    text_translation: text ? textTrans : null,
+    text_raw: text || null,
+    image_translation: b64Image ? imageTrans : null,
+    image_raw: b64Image ? imageRaw : null,
     tags: tags
   };
 }
 
-// CORS対応の翻訳API (MyMemory API)
+// MyMemory 翻訳
 async function clientTranslate(text) {
   if (!text || !text.trim()) return "";
   
@@ -921,7 +919,6 @@ async function clientTranslate(text) {
   const translated = [];
 
   for (const para of paragraphs) {
-    // 300文字以下の塊に分割
     let chunks = [para];
     if (para.length > 250) {
       chunks = para.match(/[^.!?]+[.!?]+/g) || [para];
@@ -950,14 +947,14 @@ async function clientTranslate(text) {
   return translated.join('\n\n');
 }
 
-// CORS対応の無料画像OCR (OCR.space API)
+// OCR.space OCR
 async function clientOCR(base64Data) {
   try {
     const formData = new FormData();
     formData.append('base64Image', base64Data);
     formData.append('language', 'eng');
     formData.append('isOverlayRequired', 'false');
-    formData.append('apikey', 'K88536892588957'); // 安定版無料APIキー
+    formData.append('apikey', 'K88536892588957');
 
     const res = await fetch('https://api.ocr.space/parse/image', {
       method: 'POST',
@@ -985,13 +982,39 @@ function fileToBase64(file) {
   });
 }
 
-function populateNewForm(draft) {
+// フォームへの反映（存在するものだけをスマートに表示）
+function populateNewForm(draft, hasTextInput, hasImageInput) {
   document.getElementById('newPostTitle').value = draft.title || '';
   document.getElementById('newPostTitleEn').value = draft.title_en || '';
-  document.getElementById('newPostTextTranslation').value = draft.text_translation || draft.summary || '';
-  document.getElementById('newPostTextRaw').value = draft.text_raw || '';
-  document.getElementById('newPostImageTranslation').value = draft.image_translation || '';
-  document.getElementById('newPostImageRaw').value = draft.image_raw || '';
+
+  const hasText = hasTextInput || Boolean(draft.text_translation) || Boolean(draft.text_raw);
+  const hasImage = hasImageInput || Boolean(draft.image_translation) || Boolean(draft.image_raw) || Boolean(newUploadedImageUrl);
+
+  const textSection = document.getElementById('newTextMessageSection');
+  if (hasText) {
+    textSection.classList.remove('hidden');
+    document.getElementById('newPostTextTranslation').value = draft.text_translation || '';
+    document.getElementById('newPostTextRaw').value = draft.text_raw || '';
+  } else {
+    textSection.classList.add('hidden');
+    document.getElementById('newPostTextTranslation').value = '';
+    document.getElementById('newPostTextRaw').value = '';
+  }
+
+  const imageSection = document.getElementById('newImageMessageSection');
+  if (hasImage) {
+    imageSection.classList.remove('hidden');
+    document.getElementById('newPostImageTranslation').value = draft.image_translation || '';
+    document.getElementById('newPostImageRaw').value = draft.image_raw || '';
+    if (newUploadedImageUrl) {
+      document.getElementById('newPreviewImageEl').src = newUploadedImageUrl;
+    }
+  } else {
+    imageSection.classList.add('hidden');
+    document.getElementById('newPostImageTranslation').value = '';
+    document.getElementById('newPostImageRaw').value = '';
+  }
+
   document.getElementById('newPostDate').value = draft.date || '';
   document.getElementById('newPostTimeStart').value = draft.time_start || '';
   document.getElementById('newPostLocation').value = draft.location || '';
@@ -1003,11 +1026,6 @@ function populateNewForm(draft) {
     newSelectedTags = draft.tags;
   }
   renderNewTags();
-
-  if (newUploadedImageUrl) {
-    document.getElementById('newPreviewImageEl').src = newUploadedImageUrl;
-    document.getElementById('newImagePreviewBox').classList.remove('hidden');
-  }
 
   document.getElementById('newResultForm').classList.remove('hidden');
   document.getElementById('newResultForm').scrollIntoView({ behavior: 'smooth' });
@@ -1024,14 +1042,19 @@ function submitNewPost(e) {
   const itemsStr = document.getElementById('newPostItems').value;
   const itemsArr = itemsStr ? itemsStr.split(',').map(s => s.trim()).filter(Boolean) : [];
 
+  const textTrans = document.getElementById('newPostTextTranslation').value.trim();
+  const textRaw = document.getElementById('newPostTextRaw').value.trim();
+  const imgTrans = document.getElementById('newPostImageTranslation').value.trim();
+  const imgRaw = document.getElementById('newPostImageRaw').value.trim();
+
   const postData = {
     title: title,
     title_en: document.getElementById('newPostTitleEn').value.trim() || null,
-    text_translation: document.getElementById('newPostTextTranslation').value.trim() || null,
-    text_raw: document.getElementById('newPostTextRaw').value.trim() || null,
-    image_translation: document.getElementById('newPostImageTranslation').value.trim() || null,
-    image_raw: document.getElementById('newPostImageRaw').value.trim() || null,
-    summary: document.getElementById('newPostTextTranslation').value.trim() || document.getElementById('newPostImageTranslation').value.trim() || title,
+    text_translation: textTrans || null,
+    text_raw: textRaw || null,
+    image_translation: imgTrans || null,
+    image_raw: imgRaw || null,
+    summary: textTrans || imgTrans || title,
     date: document.getElementById('newPostDate').value || null,
     time_start: document.getElementById('newPostTimeStart').value || null,
     location: document.getElementById('newPostLocation').value.trim() || null,
@@ -1080,7 +1103,7 @@ function renderEditPage(postId) {
   document.getElementById('editBackLink').href = `#/post/${postId}`;
   document.getElementById('editPostTitle').value = post.title || '';
   document.getElementById('editPostTitleEn').value = post.title_en || '';
-  document.getElementById('editPostTextTranslation').value = post.text_translation || post.summary || '';
+  document.getElementById('editPostTextTranslation').value = post.text_translation || '';
   document.getElementById('editPostTextRaw').value = post.text_raw || '';
   document.getElementById('editPostImageTranslation').value = post.image_translation || '';
   document.getElementById('editPostImageRaw').value = post.image_raw || '';
@@ -1152,14 +1175,19 @@ function submitEditPost(e) {
   const itemsStr = document.getElementById('editPostItems').value;
   const itemsArr = itemsStr ? itemsStr.split(',').map(s => s.trim()).filter(Boolean) : [];
 
+  const textTrans = document.getElementById('editPostTextTranslation').value.trim();
+  const textRaw = document.getElementById('editPostTextRaw').value.trim();
+  const imgTrans = document.getElementById('editPostImageTranslation').value.trim();
+  const imgRaw = document.getElementById('editPostImageRaw').value.trim();
+
   const updateData = {
     title: title,
     title_en: document.getElementById('editPostTitleEn').value.trim() || null,
-    text_translation: document.getElementById('editPostTextTranslation').value.trim() || null,
-    text_raw: document.getElementById('editPostTextRaw').value.trim() || null,
-    image_translation: document.getElementById('editPostImageTranslation').value.trim() || null,
-    image_raw: document.getElementById('editPostImageRaw').value.trim() || null,
-    summary: document.getElementById('editPostTextTranslation').value.trim() || document.getElementById('editPostImageTranslation').value.trim() || title,
+    text_translation: textTrans || null,
+    text_raw: textRaw || null,
+    image_translation: imgTrans || null,
+    image_raw: imgRaw || null,
+    summary: textTrans || imgTrans || title,
     date: document.getElementById('editPostDate').value || null,
     time_start: document.getElementById('editPostTimeStart').value || null,
     location: document.getElementById('editPostLocation').value.trim() || null,

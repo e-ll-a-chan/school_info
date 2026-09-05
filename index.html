@@ -185,13 +185,6 @@
             <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">AI解析完了</span>
           </div>
 
-          <!-- 画像プレビュー -->
-          <div id="newImagePreviewBox" class="hidden p-3 bg-stone-50 rounded-2xl border border-stone-200 space-y-2">
-            <div class="w-full h-40 bg-white rounded-xl overflow-hidden flex items-center justify-center border border-stone-200">
-              <img id="newPreviewImageEl" src="" class="w-full h-full object-contain" alt="添付画像">
-            </div>
-          </div>
-
           <!-- タイトル -->
           <div class="space-y-1.5">
             <label class="text-xs font-bold text-stone-700 block">📌 タイトル（日本語） <span class="text-red-500">*</span></label>
@@ -206,8 +199,8 @@
                    class="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-600 focus:outline-none focus:ring-2 focus:ring-emerald-400">
           </div>
 
-          <!-- ① 本文翻訳 -->
-          <div class="p-3.5 rounded-2xl bg-amber-50/60 border border-amber-200/80 space-y-2">
+          <!-- ① 本文翻訳（テキストが入力された場合のみ表示） -->
+          <div id="newTextMessageSection" class="p-3.5 rounded-2xl bg-amber-50/60 border border-amber-200/80 space-y-2">
             <label class="text-xs font-bold text-amber-900 flex items-center gap-1">
               <span>📱 メッセージ・メール本文の翻訳（日本語）</span>
             </label>
@@ -221,11 +214,17 @@
             </details>
           </div>
 
-          <!-- ② 添付画像翻訳 -->
-          <div class="p-3.5 rounded-2xl bg-sky-50/60 border border-sky-200/80 space-y-2">
+          <!-- ② 添付画像翻訳（写真が添付された場合のみ表示） -->
+          <div id="newImageMessageSection" class="p-3.5 rounded-2xl bg-sky-50/60 border border-sky-200/80 space-y-2.5">
             <label class="text-xs font-bold text-sky-900 flex items-center gap-1">
-              <span>🖼️ 添付プリント画像内の翻訳（日本語）</span>
+              <span>🖼️ 添付プリント写真 ＆ 画像内の翻訳（日本語）</span>
             </label>
+            
+            <!-- 画像プレビュー -->
+            <div id="newImagePreviewBox" class="w-full h-44 bg-white rounded-xl overflow-hidden flex items-center justify-center border border-sky-200">
+              <img id="newPreviewImageEl" src="" class="w-full h-full object-contain" alt="添付画像">
+            </div>
+
             <textarea id="newPostImageTranslation" rows="4" placeholder="プリント画像内に書かれている内容の日本語訳"
                       class="w-full p-3 text-xs bg-white border border-sky-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-400 leading-relaxed"></textarea>
             
@@ -340,7 +339,7 @@
             <label class="text-xs font-bold text-amber-900 flex items-center gap-1">
               <span>📱 メッセージ・メール本文の翻訳（日本語）</span>
             </label>
-            <textarea id="editPostTextTranslation" rows="4"
+            <textarea id="editPostTextTranslation" rows="4" placeholder="メッセージ・本文の日本語訳（ない場合は空欄）"
                       class="w-full p-3 text-xs bg-white border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400 leading-relaxed"></textarea>
             
             <details class="text-xs pt-1">
@@ -355,7 +354,7 @@
             <label class="text-xs font-bold text-sky-900 flex items-center gap-1">
               <span>🖼️ 添付プリント画像内の翻訳（日本語）</span>
             </label>
-            <textarea id="editPostImageTranslation" rows="4"
+            <textarea id="editPostImageTranslation" rows="4" placeholder="プリント画像内に書かれている内容の日本語訳"
                       class="w-full p-3 text-xs bg-white border border-sky-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-400 leading-relaxed"></textarea>
             
             <details class="text-xs pt-1">
@@ -463,6 +462,6 @@
 
   </div>
 
-  <script src="./app.js?v=20260905"></script>
+  <script src="./app.js?v=20260905_1900"></script>
 </body>
 </html>
