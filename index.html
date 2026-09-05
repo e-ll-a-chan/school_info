@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>School Info📝 | 学校のおたより翻訳・予定管理</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📝</text></svg>">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <link rel="stylesheet" href="./style.css?v=20260905">
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#EF4444">
+</head>
+<body class="antialiased bg-stone-100 min-h-screen text-stone-800 flex justify-center py-0 sm:py-6">
+
+  <!-- メインアプリコンテナ -->
+  <div class="app-container w-full max-w-lg bg-white min-h-screen sm:min-h-0 sm:rounded-3xl shadow-xl flex flex-col overflow-hidden relative" id="app">
+
+    <!-- ================= 1. ホーム画面 (homeView) ================= -->
+    <div id="homeView" class="flex flex-col flex-1">
+      <!-- 上部ステータスバー -->
+      <header class="px-5 pt-4 pb-3 flex items-center justify-between border-b border-stone-200/60 bg-white/80 backdrop-blur sticky top-0 z-30">
+        <div class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center text-xl shadow-md shadow-amber-500/30">
+            📝
+          </div>
+          <div>
+            <h1 class="font-extrabold text-lg tracking-tight text-stone-800">School Info📝</h1>
+            <p class="text-xs text-stone-500 font-medium">こんにちは、<span id="userNameDisplay">めぐ</span>さん</p>
+          </div>
+        </div>
+        
+        <div class="flex items-center gap-2">
+          <!-- ⚙️ 設定ボタン -->
+          <button onclick="openSettingsModal()" title="設定" class="w-10 h-10 rounded-2xl bg-stone-100 hover:bg-stone-200 border border-stone-200 text-stone-700 active:scale-90 transition flex items-center justify-center text-lg font-bold shadow-sm">
+            ⚙️
+          </button>
+        </div>
+      </header>
+
+      <!-- メインスクロールエリア -->
+      <main class="flex-1 px-4 py-4 space-y-5 pb-28">
+
+        <!-- 検索バー -->
+        <div class="relative">
+          <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400 text-sm">🔍</span>
+          <input type="text" id="searchInput" placeholder="持ち物・行事・英語で検索 (靴箱, lunch, slip)..."
+                 class="w-full pl-9 pr-9 py-2.5 bg-white border border-stone-200 rounded-2xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-red-400/40 focus:border-red-500 transition shadow-sm"
+                 oninput="handleSearch()">
+          <button id="clearSearchBtn" onclick="clearSearch()" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 text-xs font-bold">
+            ✕
+          </button>
+        </div>
+
+        <!-- 📅 直近の予定（予定・持ち物） -->
+        <section>
+          <div class="flex items-center justify-between mb-2.5">
+            <div class="flex items-center gap-1.5 text-xs font-bold text-stone-700 uppercase tracking-wider">
+              <span>📅 直近の予定 ＆ 🎒 持ち物</span>
+            </div>
+          </div>
+          <div id="upcomingEventsList" class="space-y-2.5"></div>
+        </section>
+
+        <!-- 📑 届いたおたより一覧 -->
+        <section class="space-y-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-1.5 text-xs font-bold text-stone-700 uppercase tracking-wider">
+              <span>📑 届いたおたより一覧</span>
+            </div>
+            <span id="postsCount" class="text-xs text-stone-400 font-semibold">0件</span>
+          </div>
+
+          <!-- タグフィルター -->
+          <div class="flex items-center gap-1.5 overflow-x-auto pb-2 -mx-1 px-1 no-scrollbar text-xs">
+            <button onclick="filterByTag('all', this)" class="tag-filter-btn active px-3 py-1.5 rounded-full font-bold bg-stone-800 text-white shadow-sm transition whitespace-nowrap">すべて</button>
+            <button onclick="filterByTag('英語・UOI', this)" class="tag-filter-btn px-3 py-1.5 rounded-full font-bold bg-white text-stone-600 border border-stone-200 hover:bg-stone-50 transition whitespace-nowrap">📚 英語・UOI</button>
+            <button onclick="filterByTag('中国語', this)" class="tag-filter-btn px-3 py-1.5 rounded-full font-bold bg-white text-stone-600 border border-stone-200 hover:bg-stone-50 transition whitespace-nowrap">🀄 中国語</button>
+            <button onclick="filterByTag('アート', this)" class="tag-filter-btn px-3 py-1.5 rounded-full font-bold bg-white text-stone-600 border border-stone-200 hover:bg-stone-50 transition whitespace-nowrap">🎨 アート</button>
+            <button onclick="filterByTag('Music', this)" class="tag-filter-btn px-3 py-1.5 rounded-full font-bold bg-white text-stone-600 border border-stone-200 hover:bg-stone-50 transition whitespace-nowrap">🎵 Music</button>
+            <button onclick="filterByTag('学校行事', this)" class="tag-filter-btn px-3 py-1.5 rounded-full font-bold bg-white text-stone-600 border border-stone-200 hover:bg-stone-50 transition whitespace-nowrap">🏫 学校行事</button>
+            <button onclick="filterByTag('提出物あり', this)" class="tag-filter-btn px-3 py-1.5 rounded-full font-bold bg-white text-stone-600 border border-stone-200 hover:bg-stone-50 transition whitespace-nowrap">⚠️ 提出物</button>
+          </div>
+
+          <!-- おたよりカードリスト -->
+          <div id="postsList" class="space-y-3 mt-2"></div>
+        </section>
+
+      </main>
+
+      <!-- フローティング「＋ おたよりを追加」ボタン -->
+      <a href="#/new" class="fab-post-btn flex items-center justify-center no-underline shadow-2xl" id="fabPostBtn" title="新しい英語プリントを追加">
+        <span class="text-3xl font-bold leading-none select-none text-white">＋</span>
+      </a>
+    </div>
+
+    <!-- ================= 2. 詳細画面 (detailView) ================= -->
+    <div id="detailView" class="hidden flex flex-col flex-1 overflow-y-auto">
+      <div id="detailContainer" class="flex flex-col flex-1"></div>
+    </div>
+
+    <!-- ================= 3. 新規追加画面 (newView) ================= -->
+    <div id="newView" class="hidden flex flex-col flex-1 overflow-y-auto">
+      <header class="px-4 py-3.5 bg-white border-b border-stone-200/80 flex items-center justify-between sticky top-0 z-30 shadow-sm">
+        <a href="#/" class="flex items-center gap-1.5 text-xs font-bold text-stone-600 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 px-3.5 py-2 rounded-full transition">
+          <span>← 一覧に戻る</span>
+        </a>
+        <h2 class="font-extrabold text-sm text-stone-800 flex items-center gap-1.5">
+          <span>📝 おたよりを追加</span>
+        </h2>
+        <div class="w-16"></div>
+      </header>
+
+      <main class="p-5 space-y-6 flex-1">
+        <!-- Step 1 -->
+        <section class="space-y-4">
+          <div class="flex items-center gap-2">
+            <div class="w-6 h-6 rounded-full bg-red-600 text-white font-bold text-xs flex items-center justify-center">1</div>
+            <h3 class="font-extrabold text-sm text-stone-900">英語プリントの写真 または テキスト</h3>
+          </div>
+
+          <!-- 写真撮影 / 選択 -->
+          <div class="border-2 border-dashed border-stone-300 hover:border-red-400 bg-stone-50 hover:bg-red-50/30 rounded-2xl p-5 text-center transition cursor-pointer" onclick="document.getElementById('newFileInput').click()">
+            <input type="file" id="newFileInput" accept="image/*,application/pdf" class="hidden" onchange="handleNewFileChange(event)">
+            <div class="flex items-center justify-center gap-3">
+              <div class="w-12 h-12 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center text-2xl flex-shrink-0 shadow-sm">
+                📷
+              </div>
+              <div class="text-left">
+                <p class="font-bold text-xs text-stone-800">写真を撮影 / プリント画像を選択</p>
+                <p class="text-[11px] text-stone-400 mt-0.5">タップしてカメラまたはライブラリを開く</p>
+              </div>
+            </div>
+            <div id="newSelectedFileName" class="hidden mt-3 p-2.5 rounded-xl bg-emerald-50 text-emerald-800 text-xs font-bold flex items-center justify-center gap-2">
+              <span>✅ 選択中:</span>
+              <span id="newSelectedFileNameText" class="truncate max-w-[220px]"></span>
+            </div>
+          </div>
+
+          <!-- テキスト入力 -->
+          <div class="space-y-1.5">
+            <label class="text-xs font-bold text-stone-700 flex items-center gap-1">
+              <span>📱 英語メッセージ・メール本文（貼り付け）:</span>
+            </label>
+            <textarea id="newRawTextInput" rows="4" placeholder="英語のおたよりの文章やメール本文をここに貼り付け&#10;(例: Dear Parents, Please bring shoebox for UOI assessment on Sep 7th...)"
+                      class="w-full p-3.5 text-xs bg-stone-50 border border-stone-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-red-400 font-mono leading-relaxed"></textarea>
+          </div>
+
+          <!-- AI読取ボタン -->
+          <button type="button" onclick="executeAIAnalyze()" class="w-full py-3.5 rounded-2xl bg-red-600 hover:bg-red-700 active:scale-[0.98] text-white font-bold text-sm shadow-lg shadow-red-500/30 transition flex items-center justify-center gap-2">
+            <span>✨ AIで読取 ＆ 日本語翻訳を開始</span>
+          </button>
+
+          <!-- サンプル選択 -->
+          <div class="pt-2 border-t border-stone-100">
+            <p class="text-[11px] font-bold text-stone-400 mb-2">💡 または サンプルで試す:</p>
+            <div class="grid grid-cols-2 gap-2">
+              <button type="button" onclick="applySampleToNew('field_trip')" class="p-2 bg-stone-50 hover:bg-stone-100 border border-stone-200 rounded-xl text-left text-xs font-medium text-stone-700 transition">
+                🚌 秋の水族館 遠足
+              </button>
+              <button type="button" onclick="applySampleToNew('term2')" class="p-2 bg-stone-50 hover:bg-stone-100 border border-stone-200 rounded-xl text-left text-xs font-medium text-stone-700 transition">
+                🎒 2学期始業式・持ち物
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ローディング -->
+        <div id="newLoadingBox" class="hidden p-6 rounded-2xl bg-red-50 border border-red-200 text-center space-y-3 animate-pulse">
+          <div class="w-8 h-8 border-3 border-red-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p class="text-xs font-bold text-red-800">AIが英語を読み取り、日本語に翻訳しています...</p>
+        </div>
+
+        <!-- Step 2: 登録フォーム -->
+        <form id="newResultForm" onsubmit="submitNewPost(event)" class="hidden space-y-5 pt-4 border-t-2 border-stone-100">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <div class="w-6 h-6 rounded-full bg-emerald-600 text-white font-bold text-xs flex items-center justify-center">2</div>
+              <h3 class="font-extrabold text-sm text-stone-900">読取 ＆ 翻訳結果の確認・編集</h3>
+            </div>
+            <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">AI解析完了</span>
+          </div>
+
+          <!-- 画像プレビュー -->
+          <div id="newImagePreviewBox" class="hidden p-3 bg-stone-50 rounded-2xl border border-stone-200 space-y-2">
+            <div class="w-full h-40 bg-white rounded-xl overflow-hidden flex items-center justify-center border border-stone-200">
+              <img id="newPreviewImageEl" src="" class="w-full h-full object-contain" alt="添付画像">
+            </div>
+          </div>
+
+          <!-- タイトル -->
+          <div class="space-y-1.5">
+            <label class="text-xs font-bold text-stone-700 block">📌 タイトル（日本語） <span class="text-red-500">*</span></label>
+            <input type="text" id="newPostTitle" required placeholder="例: 第1四半期のお知らせ（UOI評価タスク）"
+                   class="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-emerald-400">
+          </div>
+
+          <!-- 英語原題 -->
+          <div class="space-y-1.5">
+            <label class="text-xs font-bold text-stone-700 block">🇺🇸 英語の原題（タイトル）</label>
+            <input type="text" id="newPostTitleEn" placeholder="例: Quarter 1, week 5 (Summative Assessment)"
+                   class="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-600 focus:outline-none focus:ring-2 focus:ring-emerald-400">
+          </div>
+
+          <!-- ① 本文翻訳 -->
+          <div class="p-3.5 rounded-2xl bg-amber-50/60 border border-amber-200/80 space-y-2">
+            <label class="text-xs font-bold text-amber-900 flex items-center gap-1">
+              <span>📱 メッセージ・メール本文の翻訳（日本語）</span>
+            </label>
+            <textarea id="newPostTextTranslation" rows="4" placeholder="メール本文や連絡事項の日本語訳"
+                      class="w-full p-3 text-xs bg-white border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400 leading-relaxed"></textarea>
+            
+            <details class="text-xs pt-1">
+              <summary class="font-bold text-amber-800 cursor-pointer">🇺🇸 メッセージの英語原文</summary>
+              <textarea id="newPostTextRaw" rows="3" placeholder="英語の本文原文"
+                        class="mt-1.5 w-full p-2.5 text-[11px] bg-white border border-stone-200 rounded-xl font-mono text-stone-600"></textarea>
+            </details>
+          </div>
+
+          <!-- ② 添付画像翻訳 -->
+          <div class="p-3.5 rounded-2xl bg-sky-50/60 border border-sky-200/80 space-y-2">
+            <label class="text-xs font-bold text-sky-900 flex items-center gap-1">
+              <span>🖼️ 添付プリント画像内の翻訳（日本語）</span>
+            </label>
+            <textarea id="newPostImageTranslation" rows="4" placeholder="プリント画像内に書かれている内容の日本語訳"
+                      class="w-full p-3 text-xs bg-white border border-sky-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-400 leading-relaxed"></textarea>
+            
+            <details class="text-xs pt-1">
+              <summary class="font-bold text-sky-800 cursor-pointer">🇺🇸 画像から読み取った英語原文 (OCR)</summary>
+              <textarea id="newPostImageRaw" rows="3" placeholder="画像内OCR英語テキスト"
+                        class="mt-1.5 w-full p-2.5 text-[11px] bg-white border border-stone-200 rounded-xl font-mono text-stone-600"></textarea>
+            </details>
+          </div>
+
+          <!-- 日時・場所・締切 -->
+          <div class="p-3.5 bg-stone-50 rounded-2xl border border-stone-200 space-y-3">
+            <h4 class="text-xs font-bold text-stone-800">📅 日程 ＆ 場所</h4>
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="text-[11px] text-stone-600 block mb-1">日付</label>
+                <input type="date" id="newPostDate" class="w-full p-2 bg-white border border-stone-200 rounded-xl text-xs">
+              </div>
+              <div>
+                <label class="text-[11px] text-stone-600 block mb-1">開始時間</label>
+                <input type="time" id="newPostTimeStart" class="w-full p-2 bg-white border border-stone-200 rounded-xl text-xs">
+              </div>
+            </div>
+            <div>
+              <label class="text-[11px] text-stone-600 block mb-1">場所</label>
+              <input type="text" id="newPostLocation" placeholder="学校 / 各教室など" class="w-full p-2 bg-white border border-stone-200 rounded-xl text-xs">
+            </div>
+            <div class="grid grid-cols-2 gap-2 border-t border-stone-200/60 pt-2">
+              <div>
+                <label class="text-[11px] text-red-600 font-bold block mb-1">⚠️ 提出締切日</label>
+                <input type="date" id="newPostDeadline" class="w-full p-2 bg-white border border-red-200 rounded-xl text-xs">
+              </div>
+              <div>
+                <label class="text-[11px] text-stone-600 block mb-1">提出物の内容</label>
+                <input type="text" id="newPostDeadlineDesc" placeholder="靴箱・写真など" class="w-full p-2 bg-white border border-stone-200 rounded-xl text-xs">
+              </div>
+            </div>
+          </div>
+
+          <!-- 持ち物リスト -->
+          <div class="space-y-1.5">
+            <label class="text-xs font-bold text-stone-700 block">🎒 持ち物・持参するもの（カンマ区切り）</label>
+            <input type="text" id="newPostItems" placeholder="靴箱, ステッカー, 写真, はさみ"
+                   class="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-400">
+          </div>
+
+          <!-- タグ選択 -->
+          <div class="space-y-1.5">
+            <label class="text-xs font-bold text-stone-700 block">🏷️ タグ</label>
+            <div id="newTagContainer" class="flex flex-wrap gap-1.5 pt-1"></div>
+          </div>
+
+          <!-- 登録ボタン -->
+          <div class="pt-3 pb-8">
+            <button type="submit" id="newSaveBtn" class="w-full py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-black text-sm shadow-xl shadow-emerald-600/30 transition flex items-center justify-center gap-2">
+              <span>🚀 この内容でおたよりを登録する</span>
+            </button>
+          </div>
+        </form>
+      </main>
+    </div>
+
+    <!-- ================= 4. 編集画面 (editView) ================= -->
+    <div id="editView" class="hidden flex flex-col flex-1 overflow-y-auto">
+      <header class="px-4 py-3.5 bg-white border-b border-stone-200/80 flex items-center justify-between sticky top-0 z-30 shadow-sm">
+        <a id="editBackLink" href="#/" class="flex items-center gap-1.5 text-xs font-bold text-stone-600 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 px-3.5 py-2 rounded-full transition">
+          <span>← キャンセル</span>
+        </a>
+        <h2 class="font-extrabold text-sm text-stone-800 flex items-center gap-1.5">
+          <span>✏️ おたよりを編集</span>
+        </h2>
+        <div class="w-16"></div>
+      </header>
+
+      <main class="p-5 space-y-5 flex-1">
+        <form id="editForm" onsubmit="submitEditPost(event)" class="space-y-5">
+          <!-- 添付画像 -->
+          <div class="p-3.5 bg-stone-50 rounded-2xl border border-stone-200 space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-stone-700">🖼️ 添付プリント写真</span>
+              <button type="button" onclick="removeEditImage()" class="text-xs text-red-500 font-bold hover:underline">写真を削除</button>
+            </div>
+            
+            <div id="editImagePreviewBox" class="w-full h-44 bg-white rounded-xl overflow-hidden flex items-center justify-center border border-stone-200">
+              <img id="editPreviewImageEl" src="" class="w-full h-full object-contain" alt="添付写真">
+            </div>
+
+            <div class="pt-1">
+              <input type="file" id="editFileInput" accept="image/*,application/pdf" class="hidden" onchange="handleEditFileChange(event)">
+              <button type="button" onclick="document.getElementById('editFileInput').click()" class="w-full py-2.5 px-3 rounded-xl bg-white border border-stone-300 hover:bg-stone-100 text-xs font-bold text-stone-700 flex items-center justify-center gap-1.5 transition shadow-sm">
+                <span>📷 写真を変更・再撮影する</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- タイトル -->
+          <div class="space-y-1.5">
+            <label class="text-xs font-bold text-stone-700 block">📌 タイトル（日本語） <span class="text-red-500">*</span></label>
+            <input type="text" id="editPostTitle" required
+                   class="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-emerald-400">
+          </div>
+
+          <!-- 英語原題 -->
+          <div class="space-y-1.5">
+            <label class="text-xs font-bold text-stone-700 block">🇺🇸 英語の原題（タイトル）</label>
+            <input type="text" id="editPostTitleEn"
+                   class="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-600 focus:outline-none focus:ring-2 focus:ring-emerald-400">
+          </div>
+
+          <!-- ① 本文翻訳 -->
+          <div class="p-3.5 rounded-2xl bg-amber-50/60 border border-amber-200/80 space-y-2">
+            <label class="text-xs font-bold text-amber-900 flex items-center gap-1">
+              <span>📱 メッセージ・メール本文の翻訳（日本語）</span>
+            </label>
+            <textarea id="editPostTextTranslation" rows="4"
+                      class="w-full p-3 text-xs bg-white border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400 leading-relaxed"></textarea>
+            
+            <details class="text-xs pt-1">
+              <summary class="font-bold text-amber-800 cursor-pointer">🇺🇸 メッセージの英語原文</summary>
+              <textarea id="editPostTextRaw" rows="3"
+                        class="mt-1.5 w-full p-2.5 text-[11px] bg-white border border-stone-200 rounded-xl font-mono text-stone-600"></textarea>
+            </details>
+          </div>
+
+          <!-- ② 添付画像翻訳 -->
+          <div class="p-3.5 rounded-2xl bg-sky-50/60 border border-sky-200/80 space-y-2">
+            <label class="text-xs font-bold text-sky-900 flex items-center gap-1">
+              <span>🖼️ 添付プリント画像内の翻訳（日本語）</span>
+            </label>
+            <textarea id="editPostImageTranslation" rows="4"
+                      class="w-full p-3 text-xs bg-white border border-sky-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-400 leading-relaxed"></textarea>
+            
+            <details class="text-xs pt-1">
+              <summary class="font-bold text-sky-800 cursor-pointer">🇺🇸 画像から読み取った英語原文 (OCR)</summary>
+              <textarea id="editPostImageRaw" rows="3"
+                        class="mt-1.5 w-full p-2.5 text-[11px] bg-white border border-stone-200 rounded-xl font-mono text-stone-600"></textarea>
+            </details>
+          </div>
+
+          <!-- 日時・場所・締切 -->
+          <div class="p-3.5 bg-stone-50 rounded-2xl border border-stone-200 space-y-3">
+            <h4 class="text-xs font-bold text-stone-800">📅 日程 ＆ 場所</h4>
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="text-[11px] text-stone-600 block mb-1">日付</label>
+                <input type="date" id="editPostDate" class="w-full p-2 bg-white border border-stone-200 rounded-xl text-xs">
+              </div>
+              <div>
+                <label class="text-[11px] text-stone-600 block mb-1">開始時間</label>
+                <input type="time" id="editPostTimeStart" class="w-full p-2 bg-white border border-stone-200 rounded-xl text-xs">
+              </div>
+            </div>
+            <div>
+              <label class="text-[11px] text-stone-600 block mb-1">場所</label>
+              <input type="text" id="editPostLocation" class="w-full p-2 bg-white border border-stone-200 rounded-xl text-xs">
+            </div>
+            <div class="grid grid-cols-2 gap-2 border-t border-stone-200/60 pt-2">
+              <div>
+                <label class="text-[11px] text-red-600 font-bold block mb-1">⚠️ 提出締切日</label>
+                <input type="date" id="editPostDeadline" class="w-full p-2 bg-white border border-red-200 rounded-xl text-xs">
+              </div>
+              <div>
+                <label class="text-[11px] text-stone-600 block mb-1">提出物の内容</label>
+                <input type="text" id="editPostDeadlineDesc" class="w-full p-2 bg-white border border-stone-200 rounded-xl text-xs">
+              </div>
+            </div>
+          </div>
+
+          <!-- 持ち物 -->
+          <div class="space-y-1.5">
+            <label class="text-xs font-bold text-stone-700 block">🎒 持ち物・持参するもの（カンマ区切り）</label>
+            <input type="text" id="editPostItems"
+                   class="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-400">
+          </div>
+
+          <!-- タグ -->
+          <div class="space-y-1.5">
+            <label class="text-xs font-bold text-stone-700 block">🏷️ タグ</label>
+            <div id="editTagContainer" class="flex flex-wrap gap-1.5 pt-1"></div>
+          </div>
+
+          <!-- 保存ボタン -->
+          <div class="pt-3 pb-8">
+            <button type="submit" class="w-full py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-black text-sm shadow-xl shadow-emerald-600/30 transition flex items-center justify-center gap-2">
+              <span>💾 変更を保存する</span>
+            </button>
+          </div>
+        </form>
+      </main>
+    </div>
+
+    <!-- ================= 5. 設定モーダル ================= -->
+    <div id="settingsModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
+      <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl space-y-4">
+        <div class="flex items-center justify-between border-b pb-3 border-stone-100">
+          <h3 class="font-extrabold text-sm text-stone-800 flex items-center gap-1.5">
+            <span>⚙️ 設定 ＆ バックアップ</span>
+          </h3>
+          <button onclick="closeSettingsModal()" class="text-stone-400 hover:text-stone-600 text-lg">✕</button>
+        </div>
+
+        <form onsubmit="saveSettings(event)" class="space-y-3.5 text-xs">
+          <div>
+            <label class="font-bold text-stone-700 block mb-1">保護者のお名前</label>
+            <input type="text" id="settingUserName" value="めぐ" class="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl font-bold">
+          </div>
+
+          <div>
+            <label class="font-bold text-stone-700 block mb-1">Gemini APIキー（無料・画像OCR用）</label>
+            <input type="password" id="settingApiKey" placeholder="AIzaSy... (任意)" class="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl font-mono text-[11px]">
+            <p class="text-[10px] text-stone-400 mt-1">※Google AI Studioで無料取得できるAPIキーを設定すると、写真内英文の読取精度が大幅に向上します。</p>
+          </div>
+
+          <div class="pt-2 border-t border-stone-100 space-y-2">
+            <label class="font-bold text-stone-700 block">📥 データのバックアップ / 復元</label>
+            <div class="grid grid-cols-2 gap-2">
+              <button type="button" onclick="exportBackupData()" class="p-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-center">
+                📥 JSON保存
+              </button>
+              <label class="p-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-center cursor-pointer">
+                📤 復元
+                <input type="file" accept=".json" class="hidden" onchange="importBackupData(event)">
+              </label>
+            </div>
+          </div>
+
+          <div class="pt-2">
+            <button type="submit" class="w-full py-3 rounded-xl bg-stone-900 text-white font-bold text-xs hover:bg-stone-800 transition">
+              設定を保存する
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="./app.js?v=20260905"></script>
+</body>
+</html>

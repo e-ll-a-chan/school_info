@@ -1,0 +1,16 @@
+{
+  "name": "おたよりポスト",
+  "short_name": "おたよりポスト",
+  "description": "英語の学校プリントをAIが自動翻訳・予定＆持ち物管理",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FAF8F5",
+  "theme_color": "#EF4444",
+  "icons": [
+    {
+      "src": "/static/samples/field_trip.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}
