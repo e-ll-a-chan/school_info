@@ -11,7 +11,7 @@
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
   
-  <link rel="stylesheet" href="./style.css?v=20260905">
+  <link rel="stylesheet" href="./style.css?v=20260905_2">
   <link rel="manifest" href="./manifest.json">
   <meta name="theme-color" content="#EF4444">
 </head>
@@ -57,7 +57,7 @@
         </div>
 
         <!-- 📅 直近の予定（予定・持ち物） -->
-        <section>
+        <section id="upcomingEventsSection">
           <div class="flex items-center justify-between mb-2.5">
             <div class="flex items-center gap-1.5 text-xs font-bold text-stone-700 uppercase tracking-wider">
               <span>📅 直近の予定 ＆ 🎒 持ち物</span>
@@ -154,19 +154,6 @@
           <button type="button" onclick="executeAIAnalyze()" class="w-full py-3.5 rounded-2xl bg-red-600 hover:bg-red-700 active:scale-[0.98] text-white font-bold text-sm shadow-lg shadow-red-500/30 transition flex items-center justify-center gap-2">
             <span>✨ AIで読取 ＆ 日本語翻訳を開始</span>
           </button>
-
-          <!-- サンプル選択 -->
-          <div class="pt-2 border-t border-stone-100">
-            <p class="text-[11px] font-bold text-stone-400 mb-2">💡 または サンプルで試す:</p>
-            <div class="grid grid-cols-2 gap-2">
-              <button type="button" onclick="applySampleToNew('field_trip')" class="p-2 bg-stone-50 hover:bg-stone-100 border border-stone-200 rounded-xl text-left text-xs font-medium text-stone-700 transition">
-                🚌 秋の水族館 遠足
-              </button>
-              <button type="button" onclick="applySampleToNew('term2')" class="p-2 bg-stone-50 hover:bg-stone-100 border border-stone-200 rounded-xl text-left text-xs font-medium text-stone-700 transition">
-                🎒 2学期始業式・持ち物
-              </button>
-            </div>
-          </div>
         </section>
 
         <!-- ローディング -->
@@ -194,7 +181,7 @@
 
           <!-- 英語原題 -->
           <div class="space-y-1.5">
-            <label class="text-xs font-bold text-stone-700 block">🇺🇸 英語の原題（タイトル）</label>
+            <label class="text-xs font-bold text-stone-700 block">英語の原題（タイトル）</label>
             <input type="text" id="newPostTitleEn" placeholder="例: Quarter 1, week 5 (Summative Assessment)"
                    class="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-600 focus:outline-none focus:ring-2 focus:ring-emerald-400">
           </div>
@@ -208,7 +195,7 @@
                       class="w-full p-3 text-xs bg-white border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400 leading-relaxed"></textarea>
             
             <details class="text-xs pt-1">
-              <summary class="font-bold text-amber-800 cursor-pointer">🇺🇸 メッセージの英語原文</summary>
+              <summary class="font-bold text-amber-800 cursor-pointer">英語メッセージ原文を表示</summary>
               <textarea id="newPostTextRaw" rows="3" placeholder="英語の本文原文"
                         class="mt-1.5 w-full p-2.5 text-[11px] bg-white border border-stone-200 rounded-xl font-mono text-stone-600"></textarea>
             </details>
@@ -229,18 +216,27 @@
                       class="w-full p-3 text-xs bg-white border border-sky-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-400 leading-relaxed"></textarea>
             
             <details class="text-xs pt-1">
-              <summary class="font-bold text-sky-800 cursor-pointer">🇺🇸 画像から読み取った英語原文 (OCR)</summary>
+              <summary class="font-bold text-sky-800 cursor-pointer">画像から読み取った英語原文 (OCR) を表示</summary>
               <textarea id="newPostImageRaw" rows="3" placeholder="画像内OCR英語テキスト"
                         class="mt-1.5 w-full p-2.5 text-[11px] bg-white border border-stone-200 rounded-xl font-mono text-stone-600"></textarea>
             </details>
           </div>
 
-          <!-- 日時・場所・締切 -->
+          <!-- 持ち物リスト -->
+          <div class="space-y-1.5">
+            <label class="text-xs font-bold text-stone-700 block">🎒 持ち物・持参するもの（カンマ区切り）</label>
+            <input type="text" id="newPostItems" placeholder="靴箱, ステッカー, 写真, はさみ（ない場合は空欄）"
+                   class="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-400">
+          </div>
+
+          <!-- 日時・場所・締切（任意入力） -->
           <div class="p-3.5 bg-stone-50 rounded-2xl border border-stone-200 space-y-3">
-            <h4 class="text-xs font-bold text-stone-800">📅 日程 ＆ 場所</h4>
+            <div class="flex items-center justify-between">
+              <h4 class="text-xs font-bold text-stone-800">📅 日程 ＆ 締切（任意・未定なら空欄でOK）</h4>
+            </div>
             <div class="grid grid-cols-2 gap-2">
               <div>
-                <label class="text-[11px] text-stone-600 block mb-1">日付</label>
+                <label class="text-[11px] text-stone-600 block mb-1">イベント日</label>
                 <input type="date" id="newPostDate" class="w-full p-2 bg-white border border-stone-200 rounded-xl text-xs">
               </div>
               <div>
@@ -254,21 +250,14 @@
             </div>
             <div class="grid grid-cols-2 gap-2 border-t border-stone-200/60 pt-2">
               <div>
-                <label class="text-[11px] text-red-600 font-bold block mb-1">⚠️ 提出締切日</label>
-                <input type="date" id="newPostDeadline" class="w-full p-2 bg-white border border-red-200 rounded-xl text-xs">
+                <label class="text-[11px] text-stone-600 block mb-1">⚠️ 提出締切日</label>
+                <input type="date" id="newPostDeadline" class="w-full p-2 bg-white border border-stone-200 rounded-xl text-xs">
               </div>
               <div>
                 <label class="text-[11px] text-stone-600 block mb-1">提出物の内容</label>
-                <input type="text" id="newPostDeadlineDesc" placeholder="靴箱・写真など" class="w-full p-2 bg-white border border-stone-200 rounded-xl text-xs">
+                <input type="text" id="newPostDeadlineDesc" placeholder="靴箱・提出用紙など" class="w-full p-2 bg-white border border-stone-200 rounded-xl text-xs">
               </div>
             </div>
-          </div>
-
-          <!-- 持ち物リスト -->
-          <div class="space-y-1.5">
-            <label class="text-xs font-bold text-stone-700 block">🎒 持ち物・持参するもの（カンマ区切り）</label>
-            <input type="text" id="newPostItems" placeholder="靴箱, ステッカー, 写真, はさみ"
-                   class="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-400">
           </div>
 
           <!-- タグ選択 -->
@@ -329,7 +318,7 @@
 
           <!-- 英語原題 -->
           <div class="space-y-1.5">
-            <label class="text-xs font-bold text-stone-700 block">🇺🇸 英語の原題（タイトル）</label>
+            <label class="text-xs font-bold text-stone-700 block">英語の原題（タイトル）</label>
             <input type="text" id="editPostTitleEn"
                    class="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-600 focus:outline-none focus:ring-2 focus:ring-emerald-400">
           </div>
@@ -343,7 +332,7 @@
                       class="w-full p-3 text-xs bg-white border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400 leading-relaxed"></textarea>
             
             <details class="text-xs pt-1">
-              <summary class="font-bold text-amber-800 cursor-pointer">🇺🇸 メッセージの英語原文</summary>
+              <summary class="font-bold text-amber-800 cursor-pointer">英語メッセージ原文を表示</summary>
               <textarea id="editPostTextRaw" rows="3"
                         class="mt-1.5 w-full p-2.5 text-[11px] bg-white border border-stone-200 rounded-xl font-mono text-stone-600"></textarea>
             </details>
@@ -358,18 +347,25 @@
                       class="w-full p-3 text-xs bg-white border border-sky-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-400 leading-relaxed"></textarea>
             
             <details class="text-xs pt-1">
-              <summary class="font-bold text-sky-800 cursor-pointer">🇺🇸 画像から読み取った英語原文 (OCR)</summary>
+              <summary class="font-bold text-sky-800 cursor-pointer">画像から読み取った英語原文 (OCR) を表示</summary>
               <textarea id="editPostImageRaw" rows="3"
                         class="mt-1.5 w-full p-2.5 text-[11px] bg-white border border-stone-200 rounded-xl font-mono text-stone-600"></textarea>
             </details>
           </div>
 
+          <!-- 持ち物 -->
+          <div class="space-y-1.5">
+            <label class="text-xs font-bold text-stone-700 block">🎒 持ち物・持参するもの（カンマ区切り）</label>
+            <input type="text" id="editPostItems"
+                   class="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-400">
+          </div>
+
           <!-- 日時・場所・締切 -->
           <div class="p-3.5 bg-stone-50 rounded-2xl border border-stone-200 space-y-3">
-            <h4 class="text-xs font-bold text-stone-800">📅 日程 ＆ 場所</h4>
+            <h4 class="text-xs font-bold text-stone-800">📅 日程 ＆ 締切（任意・未定なら空欄でOK）</h4>
             <div class="grid grid-cols-2 gap-2">
               <div>
-                <label class="text-[11px] text-stone-600 block mb-1">日付</label>
+                <label class="text-[11px] text-stone-600 block mb-1">イベント日</label>
                 <input type="date" id="editPostDate" class="w-full p-2 bg-white border border-stone-200 rounded-xl text-xs">
               </div>
               <div>
@@ -383,21 +379,14 @@
             </div>
             <div class="grid grid-cols-2 gap-2 border-t border-stone-200/60 pt-2">
               <div>
-                <label class="text-[11px] text-red-600 font-bold block mb-1">⚠️ 提出締切日</label>
-                <input type="date" id="editPostDeadline" class="w-full p-2 bg-white border border-red-200 rounded-xl text-xs">
+                <label class="text-[11px] text-stone-600 block mb-1">⚠️ 提出締切日</label>
+                <input type="date" id="editPostDeadline" class="w-full p-2 bg-white border border-stone-200 rounded-xl text-xs">
               </div>
               <div>
                 <label class="text-[11px] text-stone-600 block mb-1">提出物の内容</label>
                 <input type="text" id="editPostDeadlineDesc" class="w-full p-2 bg-white border border-stone-200 rounded-xl text-xs">
               </div>
             </div>
-          </div>
-
-          <!-- 持ち物 -->
-          <div class="space-y-1.5">
-            <label class="text-xs font-bold text-stone-700 block">🎒 持ち物・持参するもの（カンマ区切り）</label>
-            <input type="text" id="editPostItems"
-                   class="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-400">
           </div>
 
           <!-- タグ -->
@@ -462,6 +451,6 @@
 
   </div>
 
-  <script src="./app.js?v=20260905_1900"></script>
+  <script src="./app.js?v=20260905_2"></script>
 </body>
 </html>

@@ -104,7 +104,6 @@ const DB = {
     } catch(e) {
       console.error('Storage read error:', e);
     }
-    // 初期データの保存
     localStorage.setItem('otayori_posts_v1', JSON.stringify(INITIAL_SAMPLE_POSTS));
     return INITIAL_SAMPLE_POSTS;
   },
@@ -179,7 +178,6 @@ function handleRouting() {
   const newView = document.getElementById('newView');
   const editView = document.getElementById('editView');
 
-  // すべて非表示
   [homeView, detailView, newView, editView].forEach(el => {
     if (el) el.classList.add('hidden');
   });
@@ -228,17 +226,20 @@ function renderHomePage() {
   renderPostsList(posts);
 }
 
+// 📅 直近の予定（今日以降の未来の予定のみを表示）
 function renderUpcomingEvents(posts) {
   const container = document.getElementById('upcomingEventsList');
+  const section = document.getElementById('upcomingEventsSection');
   if (!container) return;
 
+  const todayStr = new Date().toISOString().split('T')[0];
   const upcoming = posts
-    .filter(p => p.date)
+    .filter(p => p.date && p.date >= todayStr)
     .sort((a, b) => (a.date > b.date ? 1 : -1))
     .slice(0, 5);
 
   if (upcoming.length === 0) {
-    container.innerHTML = '<div class="text-center py-3 text-stone-400 text-xs">直近の予定はありません</div>';
+    container.innerHTML = '<div class="text-center py-3 text-stone-400 text-xs">直近（予定あり）のおたよりはありません</div>';
     return;
   }
 
@@ -296,7 +297,7 @@ function renderPostsList(posts) {
 
   container.innerHTML = posts.map(p => {
     const rawTags = (p.tags || []).join(',');
-    const pDateStr = p.date ? `📅 ${p.date.replace(/-/g, '/')}` : '📅 随時';
+    const pDateStr = p.date ? `📅 ${p.date.replace(/-/g, '/')}` : '';
     const pImg = p.image_url || './static/samples/no_image.svg';
     const summaryText = p.summary || p.text_translation || p.image_translation || p.title;
 
@@ -327,7 +328,7 @@ function renderPostsList(posts) {
           <div>
             <div class="flex items-center gap-1.5 flex-wrap">
               ${tagsHtml}
-              <span class="text-[10px] text-stone-400 font-semibold ml-auto">${pDateStr}</span>
+              ${pDateStr ? `<span class="text-[10px] text-stone-400 font-semibold ml-auto">${pDateStr}</span>` : ''}
             </div>
             <h3 class="text-xs font-extrabold text-stone-900 mt-1 truncate leading-tight">${escapeHtml(p.title)}</h3>
             <p class="text-[10px] text-stone-400 truncate">${escapeHtml(p.title_en || '')}</p>
@@ -440,14 +441,13 @@ function renderDetailPage(postId) {
   const title = escapeHtml(post.title || 'お知らせ');
   const titleEn = escapeHtml(post.title_en || '');
   const dateVal = post.date || '';
-  const dateDisplay = dateVal ? `📅 ${dateVal.replace(/-/g, '/')}` : '📅 随時';
-  const timeDisplay = (post.time_start && post.time_end) ? `${post.time_start} 〜 ${post.time_end}` : (post.time_start || '終日');
-  const location = escapeHtml(post.location || '学校');
+  const dateDisplay = dateVal ? `📅 ${dateVal.replace(/-/g, '/')}` : '';
+  const timeDisplay = (post.time_start && post.time_end) ? `${post.time_start} 〜 ${post.time_end}` : (post.time_start || '');
+  const location = escapeHtml(post.location || '');
   const deadline = post.deadline || '';
   const deadlineDesc = escapeHtml(post.deadline_description || '提出');
   const items = post.items || [];
   
-  // テキストと画像の存在確認（空文字なら表示しない）
   const textTrans = (post.text_translation || '').trim();
   const textRaw = (post.text_raw || '').trim();
   const imgUrl = (post.image_url || '').trim();
@@ -483,25 +483,31 @@ function renderDetailPage(postId) {
     </div>
   ` : '';
 
-  const dateTimeHtml = (dateVal || post.time_start || location !== '学校' || deadline) ? `
+  const dateTimeHtml = (dateVal || timeDisplay || location || deadline) ? `
     <div class="p-4 rounded-2xl bg-stone-50 border border-stone-200/80 space-y-2.5 text-xs">
-      <div class="flex items-center justify-between">
-        <span class="text-stone-500">📅 日程:</span>
-        <span class="font-bold text-stone-800">${dateDisplay}</span>
-      </div>
-      <div class="flex items-center justify-between">
-        <span class="text-stone-500">⏰ 時間:</span>
-        <span class="font-bold text-stone-800">${timeDisplay}</span>
-      </div>
-      <div class="flex items-center justify-between">
-        <span class="text-stone-500">📍 場所:</span>
-        <span class="font-bold text-stone-800">${location}</span>
-      </div>
+      ${dateVal ? `
+        <div class="flex items-center justify-between">
+          <span class="text-stone-500">📅 日程:</span>
+          <span class="font-bold text-stone-800">${dateDisplay}</span>
+        </div>
+      ` : ''}
+      ${timeDisplay ? `
+        <div class="flex items-center justify-between">
+          <span class="text-stone-500">⏰ 時間:</span>
+          <span class="font-bold text-stone-800">${timeDisplay}</span>
+        </div>
+      ` : ''}
+      ${location ? `
+        <div class="flex items-center justify-between">
+          <span class="text-stone-500">📍 場所:</span>
+          <span class="font-bold text-stone-800">${location}</span>
+        </div>
+      ` : ''}
       ${dlRow}
     </div>
   ` : '';
 
-  // ① メッセージカード（メッセージ本文がある場合のみ表示）
+  // ① メッセージカード
   const textCardHtml = (textTrans || textRaw) ? `
     <div class="p-4 rounded-2xl bg-amber-50/50 border border-amber-200/80 space-y-3">
       <h4 class="text-xs font-bold text-amber-900 flex items-center gap-1.5">
@@ -510,14 +516,14 @@ function renderDetailPage(postId) {
       ${textTrans ? `<div class="text-xs leading-relaxed text-stone-800 bg-white p-3.5 rounded-xl border border-amber-200/50 whitespace-pre-wrap">${escapeHtml(textTrans)}</div>` : ''}
       ${textRaw ? `
         <details class="text-xs pt-1">
-          <summary class="font-bold text-amber-700 cursor-pointer hover:text-amber-950">🇺🇸 英語の原文テキストを表示</summary>
+          <summary class="font-bold text-amber-700 cursor-pointer hover:text-amber-950">英語メッセージ原文を表示</summary>
           <div class="mt-2 p-3 rounded-xl bg-white border border-stone-200 text-stone-600 text-[11px] font-mono whitespace-pre-wrap leading-relaxed">${escapeHtml(textRaw)}</div>
         </details>
       ` : ''}
     </div>
   ` : '';
 
-  // ② 添付写真カード（写真または画像翻訳がある場合のみ表示）
+  // ② 添付写真カード
   const imageCardHtml = (imgUrl || imgTrans || imgRaw) ? `
     <div class="p-4 rounded-2xl bg-sky-50/50 border border-sky-200/80 space-y-3">
       <h4 class="text-xs font-bold text-sky-900 flex items-center gap-1.5">
@@ -531,7 +537,7 @@ function renderDetailPage(postId) {
       ${imgTrans ? `<div class="text-xs leading-relaxed text-stone-800 bg-white p-3.5 rounded-xl border border-sky-200/50 whitespace-pre-wrap">${escapeHtml(imgTrans)}</div>` : ''}
       ${imgRaw ? `
         <details class="text-xs pt-1">
-          <summary class="font-bold text-sky-700 cursor-pointer hover:text-sky-950">🇺🇸 画像から読み取った英語原文 (OCR)</summary>
+          <summary class="font-bold text-sky-700 cursor-pointer hover:text-sky-950">画像から読み取った英語原文 (OCR) を表示</summary>
           <div class="mt-2 p-3 rounded-xl bg-white border border-stone-200 text-stone-600 text-[11px] font-mono whitespace-pre-wrap leading-relaxed">${escapeHtml(imgRaw)}</div>
         </details>
       ` : ''}
@@ -570,7 +576,7 @@ function renderDetailPage(postId) {
       <div class="space-y-2">
         <div class="flex flex-wrap gap-1.5 items-center">
           ${tagsHtml}
-          <span class="text-xs text-stone-400 font-semibold ml-auto">${dateDisplay}</span>
+          ${dateDisplay ? `<span class="text-xs text-stone-400 font-semibold ml-auto">${dateDisplay}</span>` : ''}
         </div>
         <h1 class="text-xl font-black text-stone-900 leading-snug">${title}</h1>
         ${titleEn ? `<p class="text-xs text-stone-500 font-medium">${titleEn}</p>` : ''}
@@ -738,21 +744,26 @@ async function callGeminiDirect(apiKey, file, textContent) {
 あなたは学校・幼稚園・インターナショナルスクールの英語のおたよりを自然な日本語に翻訳・構造化する専門AIです。
 必ず以下のJSON形式のみを出力してください（Markdownコードブロック不要、純粋なJSON）。
 
+【重要指示】
+- 本文や画像内に明確な日付が書かれていない場合は、date は必ず null にしてください（勝手に今日の日付を入れないでください）。
+- 提出締切がない場合は、deadline と deadline_description は null にしてください。
+- 持ち物が書かれていない場合は items は空配列 [] にしてください。
+
 {
   "title": "日本語の分かりやすいタイトル（例: 第1四半期のお知らせ（UOI評価タスク））",
   "title_en": "Original English Title",
-  "date": "YYYY-MM-DD",
-  "time_start": "HH:MM",
-  "location": "場所",
+  "date": "YYYY-MM-DD (明確な日付がある場合のみ。不明なら null)",
+  "time_start": "HH:MM (開始時刻。ない場合は null)",
+  "location": "場所 (ない場合は null)",
   "items": ["持ち物1", "持ち物2"],
-  "deadline": "YYYY-MM-DD",
-  "deadline_description": "提出物の内容",
+  "deadline": "YYYY-MM-DD (提出締切日。ない場合は null)",
+  "deadline_description": "提出物の内容（ない場合は null)",
   "summary": "おたより全体の要約（自然で丁寧な日本語）",
   "text_translation": "メッセージ本文の丁寧な日本語全訳（メッセージがない場合はnull）",
   "text_raw": "メッセージ英語原文（ない場合はnull）",
   "image_translation": "画像内英文の丁寧な日本語全訳（画像がない場合はnull）",
   "image_raw": "画像内英文OCR（画像がない場合はnull）",
-  "tags": ["英語・UOI", "学校行事", "提出物あり"]
+  "tags": ["英語・UOI", "学校行事"]
 }
 `;
       parts.unshift({ text: systemPrompt });
@@ -786,7 +797,7 @@ async function callGeminiDirect(apiKey, file, textContent) {
   return null;
 }
 
-// ② クライアント側フォールバック翻訳
+// ② クライアント側フォールバック翻訳（日付・締切はデフォルトオフ）
 async function clientSideTranslateEngine(text, file, b64Image) {
   let textTrans = "";
   let imageRaw = "";
@@ -838,7 +849,7 @@ async function clientSideTranslateEngine(text, file, b64Image) {
     }
   }
 
-  // 日付
+  // 日付（明確にテキスト内にある場合のみ抽出。なければ null）
   let eventDate = null;
   const dateMatch = combined.match(/(?:on\s+)?([A-Za-z]+)\s+(\d{1,2})(?:st|nd|rd|th)?/i);
   if (dateMatch) {
@@ -850,8 +861,25 @@ async function clientSideTranslateEngine(text, file, b64Image) {
       eventDate = `2026-${mVal}-${dVal}`;
     }
   }
-  if (!eventDate) {
-    eventDate = new Date().toISOString().split('T')[0];
+
+  // 時間（明確にある場合のみ）
+  let timeStart = null;
+  const timeMatch = combined.match(/(\d{1,2}):(\d{2})\s*(AM|PM|am|pm)?/);
+  if (timeMatch) {
+    let hr = parseInt(timeMatch[1]);
+    const min = timeMatch[2];
+    const ampm = (timeMatch[3] || '').toUpperCase();
+    if (ampm === 'PM' && hr < 12) hr += 12;
+    if (ampm === 'AM' && hr === 12) hr = 0;
+    timeStart = `${String(hr).padStart(2, '0')}:${min}`;
+  }
+
+  // 締切（明確にある場合のみ）
+  let deadline = null;
+  let deadlineDesc = null;
+  if (lower.includes('return by') || lower.includes('due') || lower.includes('deadline') || lower.includes('締切')) {
+    deadline = eventDate;
+    deadlineDesc = items.length > 0 ? `${items[0]}等の持参` : "提出用紙・確認";
   }
 
   // タイトル
@@ -887,7 +915,7 @@ async function clientSideTranslateEngine(text, file, b64Image) {
   if (lower.includes('craft') || lower.includes('art')) tags.push('アート');
   if (lower.includes('music') || lower.includes('concert')) tags.push('Music');
   if (lower.includes('trip') || lower.includes('ceremony') || lower.includes('festival')) tags.push('学校行事');
-  if (items.length > 0 || lower.includes('due') || lower.includes('deadline') || lower.includes('bring')) tags.push('提出物あり');
+  if (deadline || (items.length > 0 && (lower.includes('due') || lower.includes('return')))) tags.push('提出物あり');
   if (tags.length === 0) tags.push('英語・UOI');
 
   const summaryJa = textTrans || imageTrans || titleJa;
@@ -896,12 +924,12 @@ async function clientSideTranslateEngine(text, file, b64Image) {
     title: titleJa,
     title_en: titleEn,
     date: eventDate,
-    time_start: "08:30",
-    time_end: "15:00",
-    location: "学校",
+    time_start: timeStart,
+    time_end: null,
+    location: null,
     items: items,
-    deadline: eventDate,
-    deadline_description: items.length > 0 ? `${items[0]}等の持参` : "提出",
+    deadline: deadline,
+    deadline_description: deadlineDesc,
     summary: summaryJa,
     text_translation: text ? textTrans : null,
     text_raw: text || null,
@@ -982,7 +1010,7 @@ function fileToBase64(file) {
   });
 }
 
-// フォームへの反映（存在するものだけをスマートに表示）
+// フォームへの反映
 function populateNewForm(draft, hasTextInput, hasImageInput) {
   document.getElementById('newPostTitle').value = draft.title || '';
   document.getElementById('newPostTitleEn').value = draft.title_en || '';
@@ -1015,6 +1043,7 @@ function populateNewForm(draft, hasTextInput, hasImageInput) {
     document.getElementById('newPostImageRaw').value = '';
   }
 
+  // 日付・締切はデフォルト空（draftに明確にあればセット）
   document.getElementById('newPostDate').value = draft.date || '';
   document.getElementById('newPostTimeStart').value = draft.time_start || '';
   document.getElementById('newPostLocation').value = draft.location || '';
@@ -1067,21 +1096,6 @@ function submitNewPost(e) {
 
   const saved = DB.addPost(postData);
   window.location.hash = `#/post/${saved.id}`;
-}
-
-async function applySampleToNew(type) {
-  let sampleText = "";
-  let sampleSvg = `./static/samples/${type}.svg`;
-
-  if (type === 'field_trip') {
-    sampleText = "Autumn Field Trip Announcement: Friday, September 12th to Port Aquarium. Departure: 8:30 AM, Return: 3:00 PM. Please bring packed lunch, water bottle, leisure sheet, backpack, raincoat. Return signed permission slip by Thursday, September 4th.";
-  } else if (type === 'term2') {
-    sampleText = "Term 2 Opening Ceremony & Welcome Back: Monday, August 25th (8:15 AM - 11:30 AM, Early Dismissal). Please bring indoor clean shoes, emergency disaster hood, completed summer homework, and health check card.";
-  }
-
-  document.getElementById('newRawTextInput').value = sampleText;
-  newUploadedImageUrl = sampleSvg;
-  await executeAIAnalyze();
 }
 
 // --- 編集画面描画 ---
