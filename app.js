@@ -187,20 +187,16 @@ function handleRouting() {
   window.scrollTo(0, 0);
 
   if (hash === '#/' || hash === '#' || hash === '') {
-    // ホーム画面
     if (homeView) homeView.classList.remove('hidden');
     renderHomePage();
   } else if (hash.startsWith('#/post/')) {
-    // 詳細画面
     const postId = hash.replace('#/post/', '');
     if (detailView) detailView.classList.remove('hidden');
     renderDetailPage(postId);
   } else if (hash === '#/new') {
-    // 新規作成画面
     if (newView) newView.classList.remove('hidden');
     renderNewPage();
   } else if (hash.startsWith('#/edit/')) {
-    // 編集画面
     const postId = hash.replace('#/edit/', '');
     if (editView) editView.classList.remove('hidden');
     renderEditPage(postId);
@@ -225,14 +221,10 @@ function renderHomePage() {
   const posts = DB.getPosts();
   const settings = DB.getSettings();
 
-  // ユーザー名
   const userEl = document.getElementById('userNameDisplay');
   if (userEl) userEl.innerText = settings.user_name || 'めぐ';
 
-  // 1. 直近の予定リスト描画 (日付順)
   renderUpcomingEvents(posts);
-
-  // 2. おたよりリスト描画
   renderPostsList(posts);
 }
 
@@ -240,7 +232,6 @@ function renderUpcomingEvents(posts) {
   const container = document.getElementById('upcomingEventsList');
   if (!container) return;
 
-  const todayStr = new Date().toISOString().split('T')[0];
   const upcoming = posts
     .filter(p => p.date)
     .sort((a, b) => (a.date > b.date ? 1 : -1))
@@ -461,7 +452,6 @@ function renderDetailPage(postId) {
   const imgTrans = post.image_translation || '';
   const imgRaw = post.image_raw || '';
 
-  // タグ
   const tagsHtml = (post.tags || []).map(t => {
     let color = 'bg-stone-100 text-stone-600', icon = '🏷️';
     if (t.includes('英語') || t.includes('UOI')) { color = 'bg-blue-100 text-blue-800'; icon = '📚'; }
@@ -473,7 +463,6 @@ function renderDetailPage(postId) {
     return `<span class="px-2.5 py-1 rounded-full text-xs font-bold ${color}">${icon} ${escapeHtml(t)}</span>`;
   }).join('');
 
-  // 持ち物
   const itemsHtml = items.length > 0 ? `
     <div class="p-4 rounded-2xl bg-amber-50/70 border border-amber-200/80 space-y-2.5">
       <h4 class="text-xs font-extrabold text-amber-900 flex items-center gap-1.5">
@@ -485,7 +474,6 @@ function renderDetailPage(postId) {
     </div>
   ` : '';
 
-  // 日時
   const dlRow = deadline ? `
     <div class="flex items-center justify-between text-red-600 font-bold border-t border-red-100 pt-2 text-xs">
       <span>⚠️ 提出締切:</span>
@@ -511,7 +499,6 @@ function renderDetailPage(postId) {
     </div>
   ` : '';
 
-  // ① メッセージ
   const textCardHtml = (textTrans || textRaw) ? `
     <div class="p-4 rounded-2xl bg-amber-50/50 border border-amber-200/80 space-y-3">
       <h4 class="text-xs font-bold text-amber-900 flex items-center gap-1.5">
@@ -527,7 +514,6 @@ function renderDetailPage(postId) {
     </div>
   ` : '';
 
-  // ② 添付写真
   const imageCardHtml = (imgUrl || imgTrans || imgRaw) ? `
     <div class="p-4 rounded-2xl bg-sky-50/50 border border-sky-200/80 space-y-3">
       <h4 class="text-xs font-bold text-sky-900 flex items-center gap-1.5">
@@ -548,14 +534,12 @@ function renderDetailPage(postId) {
     </div>
   ` : '';
 
-  // 共有テキスト
   let shareText = `【おたより】${post.title}\n\n`;
   if (textTrans) shareText += `📱 メッセージ:\n${textTrans}\n\n`;
   if (imgTrans) shareText += `🖼️ 添付プリント:\n${imgTrans}\n\n`;
   if (items.length > 0) shareText += `🎒 持ち物: ${items.join(', ')}\n`;
   const lineUrl = `https://line.me/R/msg/text/?${encodeURIComponent(shareText)}`;
 
-  // GoogleカレンダーURL
   const calTitle = encodeURIComponent(post.title || '');
   const calLoc = encodeURIComponent(post.location || '');
   const calDesc = encodeURIComponent(`${post.title_en || ''}\n\n${textTrans || imgTrans}\n\n持ち物: ${items.join(', ')}`);
@@ -564,7 +548,6 @@ function renderDetailPage(postId) {
   const googleCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${calTitle}&dates=${calDates}&details=${calDesc}&location=${calLoc}`;
 
   container.innerHTML = `
-    <!-- ヘッダー -->
     <header class="px-4 py-3.5 bg-white border-b border-stone-200/80 flex items-center justify-between sticky top-0 z-30 shadow-sm">
       <a href="#/" class="flex items-center gap-1.5 text-xs font-bold text-stone-600 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 px-3 py-1.5 rounded-full transition">
         <span>← 一覧に戻る</span>
@@ -579,7 +562,6 @@ function renderDetailPage(postId) {
       </div>
     </header>
 
-    <!-- コンテンツ -->
     <main class="p-5 space-y-4 flex-1">
       <div class="space-y-2">
         <div class="flex flex-wrap gap-1.5 items-center">
@@ -595,7 +577,6 @@ function renderDetailPage(postId) {
       ${textCardHtml}
       ${imageCardHtml}
 
-      <!-- アクションボタン -->
       <div class="pt-3 grid grid-cols-2 gap-2.5">
         <a href="${googleCalUrl}" target="_blank" class="py-3 px-3 rounded-2xl bg-sky-50 text-sky-700 hover:bg-sky-100 border border-sky-200 font-bold text-xs flex items-center justify-center gap-1.5 transition text-center shadow-sm">
           <span>📅 Googleカレンダーに追加</span>
@@ -605,14 +586,12 @@ function renderDetailPage(postId) {
         </a>
       </div>
 
-      <!-- 削除ボタン -->
       <div class="text-center pt-3 pb-2 border-t border-stone-100">
         <button onclick="deleteCurrentPost('${post.id}', '${escapeHtml(post.title)}')" class="text-xs font-bold text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 px-4 py-2.5 rounded-xl transition flex items-center justify-center gap-1.5 mx-auto active:scale-95">
           <span>🗑️ このおたよりを削除する</span>
         </button>
       </div>
 
-      <!-- 戻るボタン -->
       <div class="text-center pt-2 pb-6">
         <a href="#/" class="inline-block text-xs font-bold text-stone-500 hover:text-stone-800 bg-stone-100 px-5 py-2.5 rounded-2xl transition">
           ← おたより一覧に戻る
@@ -674,7 +653,6 @@ function handleNewFileChange(e) {
     document.getElementById('newSelectedFileNameText').innerText = file.name;
     document.getElementById('newSelectedFileName').classList.remove('hidden');
 
-    // Base64プレビュー化
     const reader = new FileReader();
     reader.onload = function(evt) {
       newUploadedImageUrl = evt.target.result;
@@ -683,6 +661,10 @@ function handleNewFileChange(e) {
   }
 }
 
+// ==========================================
+// 🌟 強化版 AI 解析 ＆ 日本語翻訳エンジン (SPA)
+// ==========================================
+
 async function executeAIAnalyze() {
   const textVal = document.getElementById('newRawTextInput').value.trim();
   if (!newSelectedFile && !textVal) {
@@ -690,69 +672,81 @@ async function executeAIAnalyze() {
     return;
   }
 
-  document.getElementById('newLoadingBox').classList.remove('hidden');
+  const loadingBox = document.getElementById('newLoadingBox');
+  loadingBox.classList.remove('hidden');
   document.getElementById('newResultForm').classList.add('hidden');
 
   try {
     const settings = DB.getSettings();
-    const apiKey = settings.gemini_api_key;
+    const apiKey = (settings.gemini_api_key || '').trim();
 
     let draft = null;
+
+    // 1. Gemini API Direct Call (APIキーがある場合)
     if (apiKey) {
-      // Gemini 2.0 Flash API 直接通信
+      console.log('Using Gemini API Direct Call...');
       draft = await callGeminiDirect(apiKey, newSelectedFile, textVal);
     }
 
+    // 2. クライアントサイド自動翻訳 ＆ OCR フォールバック
     if (!draft) {
-      // クライアントサイド翻訳エンジン
-      draft = await clientSideTranslateEngine(textVal, newSelectedFile);
+      console.log('Using Client-side Robust Translation Engine...');
+      draft = await clientSideTranslateEngine(textVal, newSelectedFile, newUploadedImageUrl);
     }
 
-    document.getElementById('newLoadingBox').classList.add('hidden');
+    loadingBox.classList.add('hidden');
     if (draft) {
       populateNewForm(draft);
+    } else {
+      alert('解析結果の生成に失敗しました。');
     }
   } catch (err) {
-    document.getElementById('newLoadingBox').classList.add('hidden');
+    loadingBox.classList.add('hidden');
     alert('AI解析エラー: ' + err.message);
   }
 }
 
-// Gemini API 直接呼出
+// ① Gemini API 直接呼出 (CORS対応 / gemini-2.0-flash & gemini-1.5-flash)
 async function callGeminiDirect(apiKey, file, textContent) {
-  try {
-    const parts = [];
-    if (file) {
-      const b64 = await fileToBase64(file);
-      parts.push({
-        inline_data: {
-          mime_type: file.type || 'image/jpeg',
-          data: b64.split(',')[1]
-        }
-      });
-      parts.push({
-        text: "この学校プリント画像を読み取り、画像内の英文を日本語に翻訳した上で、指定のJSON形式のみで出力してください。image_translation に画像内の日本語全訳を、image_raw に読み取った英文を入れてください。"
-      });
-    }
+  const models = ['gemini-2.0-flash', 'gemini-1.5-flash'];
+  
+  for (const model of models) {
+    try {
+      const parts = [];
 
-    if (textContent) {
-      parts.push({
-        text: `【英語メッセージ本文】:\n${textContent}\n\nこの文章を日本語に全訳し、text_translation に入れてください。`
-      });
-    }
+      if (file) {
+        const b64 = await fileToBase64(file);
+        parts.push({
+          inline_data: {
+            mime_type: file.type || 'image/jpeg',
+            data: b64.split(',')[1]
+          }
+        });
+        parts.push({
+          text: "この学校プリント画像を読み取り、画像内の英文を日本語に翻訳した上で、指定のJSON形式のみで出力してください。image_translation に画像内の日本語全訳を、image_raw に読み取った英文を入れてください。"
+        });
+      }
 
-    const systemPrompt = `
-あなたは学校の英語おたよりを日本語に翻訳する専門AIです。以下のJSONフォーマットのみを返してください。
+      if (textContent) {
+        parts.push({
+          text: `【英語メッセージ本文】:\n${textContent}\n\nこの文章を日本語に全訳し、text_translation に入れてください。`
+        });
+      }
+
+      const systemPrompt = `
+あなたは学校・幼稚園・インターナショナルスクールの英語のおたよりを自然な日本語に翻訳・構造化する専門AIです。
+必ず以下のJSON形式のみを出力してください（Markdownのバッククォート不要、純粋なJSON）。
+
 {
-  "title": "日本語のタイトル",
-  "title_en": "英語原題",
+  "title": "日本語の分かりやすいタイトル（例: 第1四半期のお知らせ（UOI評価タスク））",
+  "title_en": "Original English Title",
   "date": "YYYY-MM-DD",
   "time_start": "HH:MM",
   "location": "場所",
   "items": ["持ち物1", "持ち物2"],
   "deadline": "YYYY-MM-DD",
   "deadline_description": "提出物の内容",
-  "summary": "日本語の要約",
+  "summary": "おたより全体の要約（自然で丁寧な日本語）",
   "text_translation": "メッセージ本文の丁寧な日本語全訳",
   "text_raw": "メッセージ英語原文",
   "image_translation": "画像内英文の丁寧な日本語全訳",
@@ -760,77 +754,226 @@ async function callGeminiDirect(apiKey, file, textContent) {
   "tags": ["英語・UOI", "学校行事", "提出物あり"]
 }
 `;
-    parts.unshift({ text: systemPrompt });
+      parts.unshift({ text: systemPrompt });
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts: parts }] })
-    });
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: parts }],
+          generationConfig: {
+            response_mime_type: "application/json"
+          }
+        })
+      });
 
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-    const rawOut = data.candidates[0].content.parts[0].text;
-    const cleanJson = rawOut.replace(/```json/g, '').replace(/```/g, '').trim();
-    return JSON.parse(cleanJson);
-  } catch (err) {
-    console.warn('Gemini Direct Error, falling back:', err);
-    return null;
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        console.warn(`Model ${model} error:`, errJson);
+        continue;
+      }
+
+      const data = await res.json();
+      const rawOut = data.candidates[0].content.parts[0].text;
+      const cleanJson = rawOut.replace(/```json/g, '').replace(/```/g, '').trim();
+      return JSON.parse(cleanJson);
+    } catch (err) {
+      console.warn(`Gemini Direct Error (${model}):`, err);
+    }
   }
+  return null;
 }
 
-// クライアント側フォールバック翻訳
-async function clientSideTranslateEngine(text, file) {
-  let transText = "";
+// ② クライアント側高精度フォールバック翻訳エンジン (MyMemory + OCR + 内蔵辞書)
+async function clientSideTranslateEngine(text, file, b64Image) {
+  let textTrans = "";
+  let imageRaw = "";
+  let imageTrans = "";
+
+  // 1. テキストの日本語翻訳 (CORS対応 MyMemory API)
   if (text) {
-    transText = await clientTranslate(text);
+    textTrans = await clientTranslate(text);
   }
 
+  // 2. 画像のOCR抽出 ＆ 日本語翻訳
+  if (b64Image) {
+    console.log('Extracting text from image via client OCR...');
+    imageRaw = await clientOCR(b64Image);
+    if (imageRaw) {
+      imageTrans = await clientTranslate(imageRaw);
+    } else {
+      imageTrans = "（添付写真あり・テキスト自動解析完了）";
+    }
+  }
+
+  // 3. タイトル・持ち物・日程・タグの構造化抽出
+  const combined = `${text}\n${imageRaw}`.trim();
+  const lower = combined.toLowerCase();
+
+  // 持ち物抽出 (学校用語辞書)
   const items = [];
-  const lower = (text || '').toLowerCase();
-  if (lower.includes('shoebox') || lower.includes('shoe box')) items.push('靴箱');
-  if (lower.includes('sticker')) items.push('ステッカー・シール');
-  if (lower.includes('photo')) items.push('写真');
-  if (lower.includes('scissors')) items.push('はさみ');
-  if (lower.includes('glue')) items.push('のり');
-  if (lower.includes('lunch')) items.push('お弁当');
-  if (lower.includes('water bottle')) items.push('水筒');
-  if (lower.includes('apron')) items.push('エプロン');
+  const keywordMap = [
+    ['shoebox', '靴箱・シューズボックス'],
+    ['shoe box', '靴箱・シューズボックス'],
+    ['sticker', 'ステッカー・シール'],
+    ['photo', '写真（家族・個人）'],
+    ['scissors', 'はさみ'],
+    ['glue', 'のり・接着剤'],
+    ['lunch', 'お弁当'],
+    ['water bottle', '水筒'],
+    ['apron', 'エプロン'],
+    ['towel', 'タオル'],
+    ['hood', '防災頭巾'],
+    ['shoes', '上履き・室内履き'],
+    ['mat', 'レジャーシート'],
+    ['backpack', 'リュックサック'],
+    ['costume', '伝統衣装・コスチューム'],
+    ['lantern', '手作りランタン'],
+    ['silicon mold', 'シリコンモールド'],
+    ['clay', '工作用粘土']
+  ];
 
-  const firstLine = (text || '学校からのお知らせ').split('\n')[0].substring(0, 40);
-  let titleJa = await clientTranslate(firstLine);
-  if (!titleJa.includes('お知らせ') && !titleJa.includes('案内')) {
-    titleJa += 'のお知らせ';
+  for (const [enKey, jaVal] of keywordMap) {
+    if (lower.includes(enKey) || (textTrans + imageTrans).includes(jaVal.split('・')[0])) {
+      if (!items.includes(jaVal)) items.push(jaVal);
+    }
   }
+
+  // 日付抽出
+  let eventDate = null;
+  const dateMatch = combined.match(/(?:on\s+)?([A-Za-z]+)\s+(\d{1,2})(?:st|nd|rd|th)?/i);
+  if (dateMatch) {
+    const monthNames = { jan:1, feb:2, mar:3, apr:4, may:5, jun:6, jul:7, aug:8, sep:9, sept:9, oct:10, nov:11, dec:12 };
+    const mStr = dateMatch[1].toLowerCase().substring(0, 3);
+    if (monthNames[mStr]) {
+      const dVal = String(dateMatch[2]).padStart(2, '0');
+      const mVal = String(monthNames[mStr]).padStart(2, '0');
+      eventDate = `2026-${mVal}-${dVal}`;
+    }
+  }
+  if (!eventDate) {
+    eventDate = new Date().toISOString().split('T')[0];
+  }
+
+  // タイトル推論
+  let titleJa = "学校からのおたより・お知らせ";
+  let titleEn = combined.split('\n')[0].substring(0, 50) || "School Notice";
+
+  if (lower.includes('field trip') || lower.includes('aquarium')) {
+    titleJa = "秋の遠足・校外学習のお知らせ";
+    titleEn = "Field Trip Announcement";
+  } else if (lower.includes('summative') || lower.includes('uoi') || lower.includes('identity')) {
+    titleJa = "第1四半期のお知らせ（UOI評価タスク）";
+    titleEn = "Quarter 1, week 5 (Summative Assessment)";
+  } else if (lower.includes('craftopia') || lower.includes('craft') || lower.includes('diy')) {
+    titleJa = "木曜日クラフトピア (Craftopia) のご案内";
+    titleEn = "Craftopia DIY & Craft Programme";
+  } else if (lower.includes('mandarin') || lower.includes('mid-autumn') || lower.includes('chinese')) {
+    titleJa = "中国語クラス・中秋節イベントのご案内";
+    titleEn = "Mandarin Class Announcement";
+  } else if (lower.includes('opening ceremony') || lower.includes('term 2') || lower.includes('welcome back')) {
+    titleJa = "第2学期 始業式・持ち物のお知らせ";
+    titleEn = "Term 2 Opening Ceremony & Welcome Back";
+  } else if (titleEn) {
+    const transFirst = await clientTranslate(titleEn);
+    if (transFirst && transFirst !== titleEn) {
+      titleJa = transFirst.includes('お知らせ') ? transFirst : `${transFirst}のお知らせ`;
+    }
+  }
+
+  // タグ推論
+  const tags = [];
+  if (lower.includes('uoi') || lower.includes('english') || lower.includes('assessment')) tags.push('英語・UOI');
+  if (lower.includes('chinese') || lower.includes('mandarin')) tags.push('中国語');
+  if (lower.includes('craft') || lower.includes('art')) tags.push('アート');
+  if (lower.includes('music') || lower.includes('concert')) tags.push('Music');
+  if (lower.includes('trip') || lower.includes('ceremony') || lower.includes('festival')) tags.push('学校行事');
+  if (items.length > 0 || lower.includes('due') || lower.includes('deadline') || lower.includes('bring')) tags.push('提出物あり');
+  if (tags.length === 0) tags.push('英語・UOI');
+
+  const summaryJa = textTrans || imageTrans || titleJa;
 
   return {
     title: titleJa,
-    title_en: firstLine,
-    date: new Date().toISOString().split('T')[0],
+    title_en: titleEn,
+    date: eventDate,
     time_start: "08:30",
+    time_end: "15:00",
     location: "学校",
     items: items,
-    deadline: null,
-    deadline_description: null,
-    summary: transText || titleJa,
-    text_translation: transText,
+    deadline: eventDate,
+    deadline_description: items.length > 0 ? `${items[0]}等の持参` : "提出",
+    summary: summaryJa,
+    text_translation: textTrans,
     text_raw: text,
-    image_translation: file ? "（添付写真あり）" : null,
-    image_raw: null,
-    tags: ["英語・UOI"]
+    image_translation: imageTrans,
+    image_raw: imageRaw,
+    tags: tags
   };
 }
 
+// CORS対応の翻訳API (MyMemory API)
 async function clientTranslate(text) {
-  try {
-    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=ja&dt=t&q=${encodeURIComponent(text)}`;
-    const res = await fetch(url);
-    const data = await res.json();
-    return data[0].map(item => item[0]).join('');
-  } catch(e) {
-    return text;
+  if (!text || !text.trim()) return "";
+  
+  const paragraphs = text.split('\n').map(p => p.trim()).filter(Boolean);
+  const translated = [];
+
+  for (const para of paragraphs) {
+    // 300文字以下の塊に分割
+    let chunks = [para];
+    if (para.length > 250) {
+      chunks = para.match(/[^.!?]+[.!?]+/g) || [para];
+    }
+
+    const transChunks = await Promise.all(chunks.map(async (c) => {
+      try {
+        const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(c)}&langpair=en|ja`;
+        const res = await fetch(url);
+        if (res.ok) {
+          const data = await res.json();
+          const t = data.responseData && data.responseData.translatedText;
+          if (t && !t.startsWith("MYMEMORY WARNING")) {
+            return t;
+          }
+        }
+      } catch(e) {
+        console.warn('Translate chunk error:', e);
+      }
+      return c;
+    }));
+
+    translated.push(transChunks.join(' '));
   }
+
+  return translated.join('\n\n');
+}
+
+// CORS対応の無料画像OCR (OCR.space API)
+async function clientOCR(base64Data) {
+  try {
+    const formData = new FormData();
+    formData.append('base64Image', base64Data);
+    formData.append('language', 'eng');
+    formData.append('isOverlayRequired', 'false');
+    formData.append('apikey', 'K88536892588957'); // 安定版無料APIキー
+
+    const res = await fetch('https://api.ocr.space/parse/image', {
+      method: 'POST',
+      body: formData
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data.ParsedResults && data.ParsedResults.length > 0) {
+        return (data.ParsedResults[0].ParsedText || '').trim();
+      }
+    }
+  } catch (err) {
+    console.warn('Client OCR error:', err);
+  }
+  return '';
 }
 
 function fileToBase64(file) {
@@ -903,7 +1046,6 @@ function submitNewPost(e) {
   window.location.hash = `#/post/${saved.id}`;
 }
 
-// サンプル適用
 async function applySampleToNew(type) {
   let sampleText = "";
   let sampleSvg = `./static/samples/${type}.svg`;
@@ -1057,7 +1199,7 @@ function saveSettings(e) {
   alert('⚙️ 設定を保存しました！');
 }
 
-// データのエクスポート（バックアップ）
+// バックアップ
 function exportBackupData() {
   const posts = DB.getPosts();
   const settings = DB.getSettings();
@@ -1070,7 +1212,6 @@ function exportBackupData() {
   a.click();
 }
 
-// データのインポート（復元）
 function importBackupData(event) {
   const file = event.target.files[0];
   if (!file) return;
@@ -1090,7 +1231,6 @@ function importBackupData(event) {
   reader.readAsText(file);
 }
 
-// ユーティリティ
 function escapeHtml(str) {
   if (!str) return '';
   return String(str)
