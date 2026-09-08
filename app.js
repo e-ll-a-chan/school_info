@@ -317,6 +317,7 @@ function renderPostsList(posts) {
       else if (t.includes('Music')) { color = 'bg-pink-100 text-pink-800'; icon = '🎵'; }
       else if (t.includes('行事')) { color = 'bg-emerald-100 text-emerald-800'; icon = '🏫'; }
       else if (t.includes('提出物')) { color = 'bg-amber-100 text-amber-800'; icon = '⚠️'; }
+      else if (t.includes('Dgaeden') || t.includes('dgaeden')) { color = 'bg-teal-100 text-teal-800 border border-teal-200'; icon = '🌱'; }
       return `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold ${color}">${icon} ${escapeHtml(t)}</span>`;
     }).join('');
 
@@ -607,7 +608,7 @@ function deleteCurrentPost(id, title) {
 let newSelectedFile = null;
 let newUploadedImageUrl = null;
 let newSelectedTags = ['英語・UOI'];
-const ALL_TAGS = ['英語・UOI', '中国語', 'アート', 'Music', '学校行事', '提出物あり'];
+const ALL_TAGS = ['英語・UOI', '中国語', 'アート', 'Music', '学校行事', '提出物あり', 'Dgaeden'];
 
 function renderNewPage() {
   newSelectedFile = null;
