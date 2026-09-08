@@ -400,35 +400,7 @@ function filterByTag(tag, el) {
   if (countEl) countEl.innerText = `${matchCount}件`;
 }
 
-// --- 検索 ---
-function handleSearch() {
-  const q = document.getElementById('searchInput').value.trim().toLowerCase();
-  const clearBtn = document.getElementById('clearSearchBtn');
-  if (q) clearBtn.classList.remove('hidden');
-  else clearBtn.classList.add('hidden');
 
-  const cards = document.querySelectorAll('#postsList .otayori-card');
-  let matchCount = 0;
-
-  cards.forEach(card => {
-    const text = card.innerText.toLowerCase();
-    if (!q || text.includes(q)) {
-      card.style.setProperty('display', 'flex', 'important');
-      matchCount++;
-    } else {
-      card.style.setProperty('display', 'none', 'important');
-    }
-  });
-
-  const countEl = document.getElementById('postsCount');
-  if (countEl) countEl.innerText = `${matchCount}件`;
-}
-
-function clearSearch() {
-  document.getElementById('searchInput').value = '';
-  document.getElementById('clearSearchBtn').classList.add('hidden');
-  handleSearch();
-}
 
 // --- 詳細画面描画 ---
 function renderDetailPage(postId) {
