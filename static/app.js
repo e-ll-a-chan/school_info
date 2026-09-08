@@ -98,18 +98,27 @@ const DB = {
   getPosts: function() {
     try {
       const data = localStorage.getItem('otayori_posts_v1');
-      if (data) {
+      if (data !== null) {
         return JSON.parse(data);
       }
     } catch(e) {
       console.error('Storage read error:', e);
     }
-    localStorage.setItem('otayori_posts_v1', JSON.stringify(INITIAL_SAMPLE_POSTS));
-    return INITIAL_SAMPLE_POSTS;
+    
+    // 初回起動時のみサンプルデータを注入
+    const hasInit = localStorage.getItem('otayori_has_initialized_v1');
+    if (!hasInit) {
+      localStorage.setItem('otayori_has_initialized_v1', 'true');
+      localStorage.setItem('otayori_posts_v1', JSON.stringify(INITIAL_SAMPLE_POSTS));
+      return INITIAL_SAMPLE_POSTS;
+    }
+    
+    return [];
   },
 
   savePosts: function(posts) {
     try {
+      localStorage.setItem('otayori_has_initialized_v1', 'true');
       localStorage.setItem('otayori_posts_v1', JSON.stringify(posts));
     } catch(e) {
       console.error('Storage write error:', e);
@@ -1363,4 +1372,13 @@ function escapeHtml(str) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
+}
+
+// データの全削除・初期化
+function resetAllPostsData() {
+  if (!confirm('⚠️ すべてのおたよりデータを完全に消去して初期化しますか？\n（※この操作は取り消せません）')) return;
+  DB.savePosts([]);
+  alert('🧹 すべてのおたよりデータを削除しました。');
+  closeSettingsModal();
+  handleRouting();
 }
