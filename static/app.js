@@ -360,7 +360,7 @@ function renderPostsList(posts) {
   if (countEl) countEl.innerText = `${posts.length}件`;
 }
 
-// --- タグフィルター ---
+// --- タグフィルター（設定されたタグのみで厳密に判定） ---
 function filterByTag(tag, el) {
   activeTag = tag;
 
@@ -379,14 +379,19 @@ function filterByTag(tag, el) {
   let matchCount = 0;
 
   cards.forEach(card => {
-    const rawTags = card.getAttribute('data-tags') || '';
-    const cardText = card.innerText || '';
+    const rawTagsStr = card.getAttribute('data-tags') || '';
+    const tagsArr = rawTagsStr.split(',').map(t => t.trim()).filter(Boolean);
     let isMatch = false;
 
-    if (tag === 'all') isMatch = true;
-    else if (tag === '提出物あり') isMatch = rawTags.includes('提出物') || cardText.includes('提出物');
-    else if (tag === '英語・UOI') isMatch = rawTags.includes('英語') || rawTags.includes('UOI') || cardText.includes('英語') || cardText.includes('UOI');
-    else isMatch = rawTags.includes(tag) || cardText.includes(tag);
+    if (tag === 'all') {
+      isMatch = true;
+    } else if (tag === '英語・UOI') {
+      isMatch = tagsArr.some(t => t.includes('英語') || t.includes('UOI'));
+    } else if (tag === '提出物あり') {
+      isMatch = tagsArr.some(t => t.includes('提出物'));
+    } else {
+      isMatch = tagsArr.includes(tag);
+    }
 
     if (isMatch) {
       card.style.setProperty('display', 'flex', 'important');
