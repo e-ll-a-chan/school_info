@@ -1308,7 +1308,7 @@ function renderEditPage(postId) {
   editUploadedImageUrl = post.image_url || null;
   editSelectedTags = post.tags || ['英語・UOI'];
 
-  document.getElementById('editBackLink').href = `#/post/${postId}`;
+  const backLink = document.getElementById('editBackLink'); if (backLink) backLink.href = `#/post/${postId}`;
   document.getElementById('editPostTitle').value = post.title || '';
   document.getElementById('editPostTitleEn').value = post.title_en || '';
   document.getElementById('editPostTextTranslation').value = post.text_translation || '';
@@ -1353,17 +1353,17 @@ function toggleEditTag(t) {
   renderEditTags();
 }
 
-function handleEditFileChange(e) {
+async function handleEditFileChange(e) {
   const file = e.target.files[0];
   if (!file) return;
 
-  const reader = new FileReader();
-  reader.onload = function(evt) {
-    editUploadedImageUrl = evt.target.result;
-    document.getElementById('editPreviewImageEl').src = editUploadedImageUrl;
-    document.getElementById('editImagePreviewBox').style.display = 'flex';
-  };
-  reader.readAsDataURL(file);
+  editUploadedImageUrl = await compressImageFile(file);
+  const imgEl = document.getElementById('editPreviewImageEl');
+  const imgBox = document.getElementById('editImagePreviewBox');
+  if (imgEl && imgBox && editUploadedImageUrl) {
+    imgEl.src = editUploadedImageUrl;
+    imgBox.style.display = 'flex';
+  }
 }
 
 function removeEditImage() {
