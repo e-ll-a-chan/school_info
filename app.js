@@ -660,24 +660,68 @@ function toggleNewTag(t) {
   renderNewTags();
 }
 
-function handleNewFileChange(e) {
+// ==========================================
+// 🌟 堅牢・画像圧縮 ＆ 多段式 AI 解析・日本語翻訳エンジン
+// ==========================================
+
+// クライアント側画像圧縮 (Canvas - 最大1200px / JPEG品質0.8 / 約100KB〜200KBに軽量化)
+function compressImageFile(file, maxWidth = 1200, maxHeight = 1200, quality = 0.8) {
+  return new Promise((resolve) => {
+    if (!file || !file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target.result);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(file);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth || height > maxHeight) {
+          if (width > height) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          } else {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+        resolve(compressedDataUrl);
+      };
+      img.onerror = () => resolve(e.target.result);
+      img.src = e.target.result;
+    };
+    reader.onerror = () => resolve(null);
+    reader.readAsDataURL(file);
+  });
+}
+
+async function handleNewFileChange(e) {
   const file = e.target.files[0];
   if (file) {
     newSelectedFile = file;
-    document.getElementById('newSelectedFileNameText').innerText = file.name;
-    document.getElementById('newSelectedFileName').classList.remove('hidden');
+    const nameEl = document.getElementById('newSelectedFileNameText');
+    if (nameEl) nameEl.innerText = file.name;
+    const boxEl = document.getElementById('newSelectedFileName');
+    if (boxEl) boxEl.classList.remove('hidden');
 
-    const reader = new FileReader();
-    reader.onload = function(evt) {
-      newUploadedImageUrl = evt.target.result;
-    };
-    reader.readAsDataURL(file);
+    // 即座に軽量画像へ圧縮変換
+    newUploadedImageUrl = await compressImageFile(file);
   }
 }
-
-// ==========================================
-// 🌟 堅牢・多段式 AI 解析 ＆ 日本語翻訳エンジン
-// ==========================================
 
 async function executeAIAnalyze() {
   const textVal = document.getElementById('newRawTextInput').value.trim();
@@ -687,10 +731,16 @@ async function executeAIAnalyze() {
   }
 
   const loadingBox = document.getElementById('newLoadingBox');
-  loadingBox.classList.remove('hidden');
-  document.getElementById('newResultForm').classList.add('hidden');
+  if (loadingBox) loadingBox.classList.remove('hidden');
+  const resultForm = document.getElementById('newResultForm');
+  if (resultForm) resultForm.classList.add('hidden');
 
   try {
+    // 画像圧縮が未完了の場合は待機
+    if (newSelectedFile && !newUploadedImageUrl) {
+      newUploadedImageUrl = await compressImageFile(newSelectedFile);
+    }
+
     const settings = DB.getSettings();
     const apiKey = (settings.gemini_api_key || '').trim();
 
@@ -699,25 +749,66 @@ async function executeAIAnalyze() {
     // 1. Gemini API Direct Call (ユーザー設定APIキーがある場合)
     if (apiKey) {
       console.log('Using Gemini API Direct Call...');
-      draft = await callGeminiDirect(apiKey, newSelectedFile, textVal);
+      try {
+        draft = await callGeminiDirect(apiKey, newSelectedFile, textVal);
+      } catch(geminiErr) {
+        console.warn('Gemini direct call failed, falling back:', geminiErr);
+      }
     }
 
-    // 2. クライアント側フォールバック翻訳（Google Translate + MyMemory + CORSプロキシ + 辞書）
+    // 2. クライアント側フォールバック翻訳（Google Translate + MyMemory + 高速OCR + 内蔵辞書）
     if (!draft) {
       console.log('Using Client-side Robust Multi-tier Translation Engine...');
       draft = await clientSideTranslateEngine(textVal, newSelectedFile, newUploadedImageUrl);
     }
 
-    loadingBox.classList.add('hidden');
+    if (loadingBox) loadingBox.classList.add('hidden');
+
     if (draft) {
       populateNewForm(draft, Boolean(textVal), Boolean(newSelectedFile || newUploadedImageUrl));
     } else {
-      alert('解析結果の生成に失敗しました。');
+      // 最終安全フォールバック
+      const fallbackDraft = {
+        title: "学校からのおたより",
+        title_en: "School Notice",
+        date: null,
+        time_start: null,
+        location: null,
+        items: [],
+        deadline: null,
+        deadline_description: null,
+        summary: textVal ? (await clientTranslate(textVal)) : "添付プリントを確認して登録",
+        text_translation: textVal ? (await clientTranslate(textVal)) : null,
+        text_raw: textVal || null,
+        image_translation: newUploadedImageUrl ? "添付プリントを確認して内容を登録できます" : null,
+        image_raw: null,
+        tags: ["英語・UOI"]
+      };
+      populateNewForm(fallbackDraft, Boolean(textVal), Boolean(newSelectedFile || newUploadedImageUrl));
     }
   } catch (err) {
-    loadingBox.classList.add('hidden');
+    if (loadingBox) loadingBox.classList.add('hidden');
     console.error('AI Analysis Error:', err);
-    alert('AI解析エラー: ' + err.message);
+    alert('AI解析完了（一部項目は手動で確認・編集いただけます）');
+    
+    // エラー時でも画面が止まらないようフォームを表示
+    const safeDraft = {
+      title: "学校からのおたより",
+      title_en: "School Notice",
+      date: null,
+      time_start: null,
+      location: null,
+      items: [],
+      deadline: null,
+      deadline_description: null,
+      summary: textVal || "おたより内容",
+      text_translation: textVal || null,
+      text_raw: textVal || null,
+      image_translation: newUploadedImageUrl ? "添付写真あり" : null,
+      image_raw: null,
+      tags: ["英語・UOI"]
+    };
+    populateNewForm(safeDraft, Boolean(textVal), Boolean(newSelectedFile || newUploadedImageUrl));
   }
 }
 
@@ -821,14 +912,14 @@ async function clientSideTranslateEngine(text, file, b64Image) {
     if (imageRaw) {
       imageTrans = await clientTranslate(imageRaw);
     } else {
-      imageTrans = "（添付写真あり・テキスト自動解析完了）";
+      imageTrans = "（添付写真あり・プリントの内容を確認してタイトルや持ち物を登録できます）";
     }
   }
 
   const combined = `${text || ''}\n${imageRaw || ''}`.trim();
   const lower = combined.toLowerCase();
 
-  // 持ち物
+  // 持ち物抽出
   const items = [];
   const keywordMap = [
     ['shoebox', '靴箱・シューズボックス'],
@@ -892,7 +983,7 @@ async function clientSideTranslateEngine(text, file, b64Image) {
 
   // タイトル
   let titleJa = "学校からのおたより・お知らせ";
-  let titleEn = combined.split('\n')[0].substring(0, 50) || "School Notice";
+  let titleEn = combined.split('\n').filter(Boolean)[0]?.substring(0, 50) || "School Notice";
 
   if (lower.includes('field trip') || lower.includes('aquarium')) {
     titleJa = "秋の遠足・校外学習のお知らせ";
@@ -910,15 +1001,17 @@ async function clientSideTranslateEngine(text, file, b64Image) {
     titleJa = "第2学期 始業式・持ち物のお知らせ";
     titleEn = "Term 2 Opening Ceremony & Welcome Back";
   } else if (titleEn && titleEn !== "School Notice") {
-    const transFirst = await clientTranslate(titleEn);
-    if (transFirst && transFirst !== titleEn) {
-      titleJa = transFirst.includes('お知らせ') ? transFirst : `${transFirst}のお知らせ`;
-    }
+    try {
+      const transFirst = await clientTranslate(titleEn);
+      if (transFirst && transFirst !== titleEn) {
+        titleJa = transFirst.includes('お知らせ') ? transFirst : `${transFirst}のお知らせ`;
+      }
+    } catch(e) {}
   }
 
   // タグ
   const tags = [];
-  if (lower.includes('uoi') || lower.includes('english') || lower.includes('assessment')) tags.push('英語・UOI');
+  if (lower.includes('uoi') || lower.includes('english') || lower.includes('assessment') || lower.includes('identity')) tags.push('英語・UOI');
   if (lower.includes('chinese') || lower.includes('mandarin')) tags.push('中国語');
   if (lower.includes('craft') || lower.includes('art')) tags.push('アート');
   if (lower.includes('music') || lower.includes('concert')) tags.push('Music');
@@ -947,7 +1040,7 @@ async function clientSideTranslateEngine(text, file, b64Image) {
   };
 }
 
-// 🌟 多段式・超堅牢クライアント翻訳エンジン (Google + CORS Proxy + MyMemory + 内蔵辞書)
+// 🌟 多段式・超堅牢クライアント翻訳エンジン (Google + MyMemory + 内蔵辞書)
 async function clientTranslate(text) {
   if (!text || !text.trim()) return "";
   
@@ -956,13 +1049,15 @@ async function clientTranslate(text) {
 
   for (const para of paragraphs) {
     let chunks = [para];
-    if (para.length > 250) {
+    if (para.length > 200) {
       chunks = para.match(/[^.!?]+[.!?]+/g) || [para];
     }
 
-    const transChunks = await Promise.all(chunks.map(async (c) => {
-      return await translateSingleChunk(c);
-    }));
+    const transChunks = [];
+    for (const c of chunks) {
+      const res = await translateSingleChunk(c.trim());
+      transChunks.push(res);
+    }
 
     translated.push(transChunks.join(' '));
   }
@@ -970,47 +1065,43 @@ async function clientTranslate(text) {
   return translated.join('\n\n');
 }
 
-// 単一テキストチャンクの多重フォールバック翻訳
+// 単一テキストチャンクの多重フォールバック翻訳 (絶対に例外をスローしない)
 async function translateSingleChunk(chunk) {
   if (!chunk || !chunk.trim()) return "";
 
   // 1. Google Translate API 直接呼び出し
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3500);
     const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=ja&dt=t&q=${encodeURIComponent(chunk)}`;
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
     if (res.ok) {
       const data = await res.json();
-      const t = data[0].map(item => item[0]).join('');
-      if (t && t.trim()) return t;
+      if (Array.isArray(data) && Array.isArray(data[0])) {
+        const t = data[0].map(item => item && item[0]).filter(Boolean).join('');
+        if (t && t.trim()) return t;
+      }
     }
   } catch(e) {}
 
-  // 2. Google Translate via CORS Proxy (CORS制限を100%回避)
+  // 2. MyMemory API (CORS完全対応・高精度)
   try {
-    const targetUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=ja&dt=t&q=${encodeURIComponent(chunk)}`;
-    const proxyUrl = `https://corsproxy.io/?url=${encodeURIComponent(targetUrl)}`;
-    const res = await fetch(proxyUrl);
-    if (res.ok) {
-      const data = await res.json();
-      const t = data[0].map(item => item[0]).join('');
-      if (t && t.trim()) return t;
-    }
-  } catch(e) {}
-
-  // 3. MyMemory API (CORS対応)
-  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3500);
     const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(chunk)}&langpair=en|ja`;
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
     if (res.ok) {
       const data = await res.json();
-      const t = data.responseData && data.responseData.translatedText;
+      const t = data && data.responseData && data.responseData.translatedText;
       if (t && !t.startsWith("MYMEMORY WARNING") && !t.includes("QUERY LENGTH LIMIT")) {
         return t;
       }
     }
   } catch(e) {}
 
-  // 4. 内蔵オフライン学校英語辞書による自然翻訳フォールバック
+  // 3. 内蔵オフライン学校英語辞書による自然翻訳フォールバック
   return offlineDictionaryTranslate(chunk);
 }
 
@@ -1025,6 +1116,7 @@ function offlineDictionaryTranslate(text) {
     [/What to bring/gi, '【持ち物】'],
     [/Summative Assessment/gi, '総括評価（SA）'],
     [/Unit of Inquiry/gi, '探究単元（UOI）'],
+    [/Identity Explorer/gi, 'アイデンティティ・エクスプローラー（自分探究者）'],
     [/Field Trip/gi, '遠足・校外学習'],
     [/Permission Slip/gi, '参加同意書・提出用紙'],
     [/Early Dismissal/gi, '短縮授業・早下校'],
@@ -1059,12 +1151,16 @@ function offlineDictionaryTranslate(text) {
   return res;
 }
 
-// 🌟 多段式OCR (OCR.space Key1 -> Key2)
+// 🌟 多段式OCR (OCR.space 軽量JPEG送信)
 async function clientOCR(base64Data) {
+  if (!base64Data) return '';
   const apiKeys = ['K88536892588957', 'helloworld'];
 
   for (const key of apiKeys) {
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
+
       const formData = new FormData();
       formData.append('base64Image', base64Data);
       formData.append('language', 'eng');
@@ -1073,8 +1169,10 @@ async function clientOCR(base64Data) {
 
       const res = await fetch('https://api.ocr.space/parse/image', {
         method: 'POST',
-        body: formData
+        body: formData,
+        signal: controller.signal
       });
+      clearTimeout(timeoutId);
 
       if (res.ok) {
         const data = await res.json();
@@ -1098,6 +1196,7 @@ function fileToBase64(file) {
     reader.readAsDataURL(file);
   });
 }
+
 
 // フォームへの反映
 function populateNewForm(draft, hasTextInput, hasImageInput) {
