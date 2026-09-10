@@ -407,7 +407,7 @@ function filterByTag(tag, el) {
 
 
 
-// --- 詳細画面描画 ---
+// --- 詳細画面描画 (コンパクト ＆ スマホ最適化) ---
 function renderDetailPage(postId) {
   const post = DB.getPostById(postId);
   const container = document.getElementById('detailContainer');
@@ -415,8 +415,8 @@ function renderDetailPage(postId) {
 
   if (!post) {
     container.innerHTML = `
-      <div class="p-8 text-center space-y-4">
-        <p class="text-sm font-bold text-stone-500">おたよりが見つかりませんでした</p>
+      <div class="p-8 text-center space-y-3">
+        <p class="text-xs font-bold text-stone-500">おたよりが見つかりませんでした</p>
         <a href="#/" class="inline-block px-4 py-2 bg-stone-800 text-white rounded-xl text-xs font-bold">一覧に戻る</a>
       </div>
     `;
@@ -441,50 +441,51 @@ function renderDetailPage(postId) {
 
   const tagsHtml = (post.tags || []).map(t => {
     let color = 'bg-stone-100 text-stone-600', icon = '🏷️';
-    if (t.includes('英語') || t.includes('UOI')) { color = 'bg-blue-100 text-blue-800'; icon = '📚'; }
-    else if (t.includes('中国語')) { color = 'bg-red-100 text-red-800'; icon = '🀄'; }
-    else if (t.includes('アート')) { color = 'bg-purple-100 text-purple-800'; icon = '🎨'; }
-    else if (t.includes('Music')) { color = 'bg-pink-100 text-pink-800'; icon = '🎵'; }
-    else if (t.includes('行事')) { color = 'bg-emerald-100 text-emerald-800'; icon = '🏫'; }
-    else if (t.includes('提出物')) { color = 'bg-amber-100 text-amber-800'; icon = '⚠️'; }
-    return `<span class="px-2.5 py-1 rounded-full text-xs font-bold ${color}">${icon} ${escapeHtml(t)}</span>`;
+    if (t.includes('英語') || t.includes('UOI')) { color = 'bg-blue-50 text-blue-700 border border-blue-200'; icon = '📚'; }
+    else if (t.includes('中国語')) { color = 'bg-rose-50 text-rose-700 border border-rose-200'; icon = '🀄'; }
+    else if (t.includes('アート')) { color = 'bg-purple-50 text-purple-700 border border-purple-200'; icon = '🎨'; }
+    else if (t.includes('Music')) { color = 'bg-pink-50 text-pink-700 border border-pink-200'; icon = '🎵'; }
+    else if (t.includes('行事')) { color = 'bg-emerald-50 text-emerald-700 border border-emerald-200'; icon = '🏫'; }
+    else if (t.includes('提出物')) { color = 'bg-amber-50 text-amber-800 border border-amber-200'; icon = '⚠️'; }
+    else if (t.includes('Dgaeden') || t.includes('dgaeden')) { color = 'bg-teal-50 text-teal-800 border border-teal-200'; icon = '🌱'; }
+    return `<span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold ${color}">${icon} ${escapeHtml(t)}</span>`;
   }).join('');
 
   const itemsHtml = items.length > 0 ? `
-    <div class="p-4 rounded-2xl bg-amber-50/70 border border-amber-200/80 space-y-2.5">
-      <h4 class="text-xs font-extrabold text-amber-900 flex items-center gap-1.5">
+    <div class="p-3 rounded-2xl bg-amber-50/70 border border-amber-200/80 space-y-1.5">
+      <h4 class="text-xs font-bold text-amber-900 flex items-center gap-1">
         <span>🎒 持ち物・持参するもの (${items.length}点)</span>
       </h4>
-      <div class="flex flex-wrap gap-1.5 pt-1">
-        ${items.map(it => `<span class="item-tag text-xs px-3 py-1.5 font-bold shadow-xs">🎒 ${escapeHtml(it)}</span>`).join('')}
+      <div class="flex flex-wrap gap-1 pt-0.5">
+        ${items.map(it => `<span class="item-tag text-xs px-2.5 py-1 font-bold shadow-xs">🎒 ${escapeHtml(it)}</span>`).join('')}
       </div>
     </div>
   ` : '';
 
   const dlRow = deadline ? `
-    <div class="flex items-center justify-between text-red-600 font-bold border-t border-red-100 pt-2 text-xs">
+    <div class="flex items-center justify-between text-rose-600 font-bold border-t border-rose-100 pt-1.5 text-xs">
       <span>⚠️ 提出締切:</span>
       <span>${deadline.replace(/-/g, '/')} (${deadlineDesc})</span>
     </div>
   ` : '';
 
   const dateTimeHtml = (dateVal || timeDisplay || location || deadline) ? `
-    <div class="p-4 rounded-2xl bg-stone-50 border border-stone-200/80 space-y-2.5 text-xs">
+    <div class="p-3 rounded-2xl bg-stone-50 border border-stone-200 text-xs space-y-1.5">
       ${dateVal ? `
         <div class="flex items-center justify-between">
-          <span class="text-stone-500">📅 日程:</span>
+          <span class="text-stone-500 font-medium">📅 日程:</span>
           <span class="font-bold text-stone-800">${dateDisplay}</span>
         </div>
       ` : ''}
       ${timeDisplay ? `
         <div class="flex items-center justify-between">
-          <span class="text-stone-500">⏰ 時間:</span>
+          <span class="text-stone-500 font-medium">⏰ 時間:</span>
           <span class="font-bold text-stone-800">${timeDisplay}</span>
         </div>
       ` : ''}
       ${location ? `
         <div class="flex items-center justify-between">
-          <span class="text-stone-500">📍 場所:</span>
+          <span class="text-stone-500 font-medium">📍 場所:</span>
           <span class="font-bold text-stone-800">${location}</span>
         </div>
       ` : ''}
@@ -494,15 +495,15 @@ function renderDetailPage(postId) {
 
   // ① メッセージカード
   const textCardHtml = (textTrans || textRaw) ? `
-    <div class="p-4.5 rounded-3xl bg-amber-50/80 border border-amber-200/90 space-y-3 shadow-xs">
-      <h4 class="text-xs font-black text-amber-950 flex items-center gap-1.5">
+    <div class="p-3.5 rounded-2xl bg-amber-50/70 border border-amber-200/80 space-y-2">
+      <h4 class="text-xs font-bold text-amber-950 flex items-center gap-1">
         <span>📱 メッセージ・メール本文の翻訳</span>
       </h4>
-      ${textTrans ? `<div class="text-xs leading-relaxed text-stone-900 bg-white p-4 rounded-2xl border border-amber-200/60 whitespace-pre-wrap font-bold shadow-xs">${escapeHtml(textTrans)}</div>` : ''}
+      ${textTrans ? `<div class="text-xs leading-relaxed text-stone-900 bg-white p-3 rounded-xl border border-amber-200/60 whitespace-pre-wrap font-medium">${escapeHtml(textTrans)}</div>` : ''}
       ${textRaw ? `
-        <details class="text-xs pt-1">
-          <summary class="font-black text-amber-900 cursor-pointer hover:text-amber-950">英語メッセージ原文を表示</summary>
-          <div class="mt-2 p-3.5 rounded-2xl bg-white border border-stone-200 text-stone-600 text-[11px] font-mono whitespace-pre-wrap leading-relaxed">${escapeHtml(textRaw)}</div>
+        <details class="text-[11px] pt-0.5">
+          <summary class="font-bold text-amber-900 cursor-pointer hover:text-amber-950">英語メッセージ原文を表示</summary>
+          <div class="mt-1 p-2.5 rounded-xl bg-white border border-stone-200 text-stone-600 text-[10px] font-mono whitespace-pre-wrap leading-relaxed">${escapeHtml(textRaw)}</div>
         </details>
       ` : ''}
     </div>
@@ -510,60 +511,73 @@ function renderDetailPage(postId) {
 
   // ② 添付写真カード
   const imageCardHtml = (imgUrl || imgTrans || imgRaw) ? `
-    <div class="p-4.5 rounded-3xl bg-sky-50/80 border border-sky-200/90 space-y-3 shadow-xs">
-      <h4 class="text-xs font-black text-sky-950 flex items-center gap-1.5">
+    <div class="p-3.5 rounded-2xl bg-sky-50/70 border border-sky-200/80 space-y-2">
+      <h4 class="text-xs font-bold text-sky-950 flex items-center gap-1">
         <span>🖼️ 添付プリント写真 ＆ 画像内の翻訳</span>
       </h4>
       ${imgUrl ? `
-        <div class="w-full rounded-2xl bg-white overflow-hidden border border-sky-200 flex items-center justify-center p-2.5 shadow-xs">
-          <img src="${imgUrl}" class="max-h-72 w-auto object-contain rounded-xl" alt="プリント" onerror="this.style.display='none'">
+        <div class="w-full rounded-xl bg-white overflow-hidden border border-sky-200 flex items-center justify-center p-2">
+          <img src="${imgUrl}" class="max-h-56 w-auto object-contain rounded-lg" alt="プリント" onerror="this.style.display='none'">
         </div>
       ` : ''}
-      ${imgTrans ? `<div class="text-xs leading-relaxed text-stone-900 bg-white p-4 rounded-2xl border border-sky-200/60 whitespace-pre-wrap font-bold shadow-xs">${escapeHtml(imgTrans)}</div>` : ''}
+      ${imgTrans ? `<div class="text-xs leading-relaxed text-stone-900 bg-white p-3 rounded-xl border border-sky-200/60 whitespace-pre-wrap font-medium">${escapeHtml(imgTrans)}</div>` : ''}
       ${imgRaw ? `
-        <details class="text-xs pt-1">
-          <summary class="font-black text-sky-900 cursor-pointer hover:text-sky-950">画像から読み取った英語原文 (OCR) を表示</summary>
-          <div class="mt-2 p-3.5 rounded-2xl bg-white border border-stone-200 text-stone-600 text-[11px] font-mono whitespace-pre-wrap leading-relaxed">${escapeHtml(imgRaw)}</div>
+        <details class="text-[11px] pt-0.5">
+          <summary class="font-bold text-sky-900 cursor-pointer hover:text-sky-950">画像から読み取った英語原文 (OCR) を表示</summary>
+          <div class="mt-1 p-2.5 rounded-xl bg-white border border-stone-200 text-stone-600 text-[10px] font-mono whitespace-pre-wrap leading-relaxed">${escapeHtml(imgRaw)}</div>
         </details>
       ` : ''}
     </div>
   ` : '';
 
-  let shareText = `【おたより】${post.title}\n\n`;
-  if (textTrans) shareText += `📱 メッセージ:\n${textTrans}\n\n`;
-  if (imgTrans) shareText += `🖼️ 添付プリント:\n${imgTrans}\n\n`;
-  if (items.length > 0) shareText += `🎒 持ち物: ${items.join(', ')}\n`;
+  let shareText = `【おたより】${post.title}
+
+`;
+  if (textTrans) shareText += `📱 メッセージ:
+${textTrans}
+
+`;
+  if (imgTrans) shareText += `🖼️ 添付プリント:
+${imgTrans}
+
+`;
+  if (items.length > 0) shareText += `🎒 持ち物: ${items.join(', ')}
+`;
   const lineUrl = `https://line.me/R/msg/text/?${encodeURIComponent(shareText)}`;
 
   const calTitle = encodeURIComponent(post.title || '');
   const calLoc = encodeURIComponent(post.location || '');
-  const calDesc = encodeURIComponent(`${post.title_en || ''}\n\n${textTrans || imgTrans}\n\n持ち物: ${items.join(', ')}`);
+  const calDesc = encodeURIComponent(`${post.title_en || ''}
+
+${textTrans || imgTrans}
+
+持ち物: ${items.join(', ')}`);
   const dClean = (dateVal || '20260907').replace(/-/g, '');
   const calDates = `${dClean}/${dClean}`;
   const googleCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${calTitle}&dates=${calDates}&details=${calDesc}&location=${calLoc}`;
 
   container.innerHTML = `
-    <header class="px-4 py-3.5 bg-white border-b border-stone-200/80 flex items-center justify-between sticky top-0 z-30 shadow-sm">
-      <a href="#/" class="flex items-center gap-1.5 text-xs font-bold text-stone-600 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 px-3 py-1.5 rounded-full transition">
+    <header class="px-4 py-3 bg-white border-b border-stone-200 flex items-center justify-between sticky top-0 z-30 shadow-xs">
+      <a href="#/" class="flex items-center gap-1 text-xs font-bold text-stone-700 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 px-3 py-1.5 rounded-xl transition">
         <span>← 一覧に戻る</span>
       </a>
       <div class="flex items-center gap-1.5">
-        <a href="#/edit/${post.id}" class="px-3 py-1.5 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs shadow-sm flex items-center gap-1 transition">
+        <a href="#/edit/${post.id}" class="px-3 py-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs shadow-xs flex items-center gap-1 transition">
           <span>✏️ 編集</span>
         </a>
-        <a href="${lineUrl}" target="_blank" class="px-3 py-1.5 rounded-full bg-[#06C755] text-white font-bold text-xs shadow-sm flex items-center gap-1">
+        <a href="${lineUrl}" target="_blank" class="px-3 py-1.5 rounded-xl bg-[#06C755] text-white font-bold text-xs shadow-xs flex items-center gap-1">
           <span>LINE共有</span>
         </a>
       </div>
     </header>
 
-    <main class="p-5 space-y-4 flex-1">
-      <div class="space-y-2">
+    <main class="p-4 space-y-3.5 flex-1">
+      <div class="space-y-1.5">
         <div class="flex flex-wrap gap-1.5 items-center">
           ${tagsHtml}
           ${dateDisplay ? `<span class="text-xs text-stone-400 font-semibold ml-auto">${dateDisplay}</span>` : ''}
         </div>
-        <h1 class="text-xl font-black text-stone-900 leading-snug">${title}</h1>
+        <h1 class="text-base sm:text-lg font-bold text-stone-900 leading-snug break-words">${title}</h1>
         ${titleEn ? `<p class="text-xs text-stone-500 font-medium">${titleEn}</p>` : ''}
       </div>
 
@@ -572,23 +586,23 @@ function renderDetailPage(postId) {
       ${textCardHtml}
       ${imageCardHtml}
 
-      <div class="pt-3 grid grid-cols-2 gap-3">
-        <a href="${googleCalUrl}" target="_blank" class="py-3.5 px-3 rounded-2xl bg-sky-50 text-sky-700 hover:bg-sky-100 border-1.5 border-sky-200 font-black text-xs flex items-center justify-center gap-1.5 transition text-center shadow-xs">
+      <div class="pt-2 grid grid-cols-2 gap-2">
+        <a href="${googleCalUrl}" target="_blank" class="py-2.5 px-3 rounded-xl bg-sky-50 text-sky-700 hover:bg-sky-100 border border-sky-200 font-bold text-xs flex items-center justify-center gap-1 transition text-center shadow-xs">
           <span>📅 カレンダー追加</span>
         </a>
-        <a href="${lineUrl}" target="_blank" class="py-3.5 px-3 rounded-2xl bg-[#06C755] text-white hover:opacity-95 font-black text-xs flex items-center justify-center gap-1.5 transition text-center shadow-md">
+        <a href="${lineUrl}" target="_blank" class="py-2.5 px-3 rounded-xl bg-[#06C755] text-white hover:opacity-95 font-bold text-xs flex items-center justify-center gap-1 transition text-center shadow-xs">
           <span>📲 LINEで共有</span>
         </a>
       </div>
 
-      <div class="text-center pt-3 pb-2 border-t border-stone-100">
-        <button onclick="deleteCurrentPost('${post.id}', '${escapeHtml(post.title)}')" class="text-xs font-bold text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 px-4 py-2.5 rounded-xl transition flex items-center justify-center gap-1.5 mx-auto active:scale-95">
+      <div class="text-center pt-2 pb-1 border-t border-stone-100">
+        <button onclick="deleteCurrentPost('${post.id}', '${escapeHtml(post.title)}')" class="text-xs font-bold text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 px-3.5 py-2 rounded-xl transition flex items-center justify-center gap-1 mx-auto active:scale-95">
           <span>🗑️ このおたよりを削除する</span>
         </button>
       </div>
 
-      <div class="text-center pt-2 pb-6">
-        <a href="#/" class="inline-block text-xs font-bold text-stone-500 hover:text-stone-800 bg-stone-100 px-5 py-2.5 rounded-2xl transition">
+      <div class="text-center pt-1 pb-4">
+        <a href="#/" class="inline-block text-xs font-bold text-stone-500 hover:text-stone-800 bg-stone-100 px-4 py-2 rounded-xl transition">
           ← おたより一覧に戻る
         </a>
       </div>
