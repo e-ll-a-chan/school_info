@@ -746,11 +746,14 @@ async function executeAIAnalyze() {
 
     let draft = null;
 
-    // 1. Gemini API Direct Call (ユーザー設定APIキーがある場合)
+        // 1. Gemini API Direct Call (ユーザー設定APIキーがある場合)
     if (apiKey) {
-      console.log('Using Gemini API Direct Call...');
+      console.log('Using Gemini API Direct Call with API Key...');
       try {
-        draft = await callGeminiDirect(apiKey, newSelectedFile, textVal);
+        draft = await callGeminiDirect(apiKey, newUploadedImageUrl, textVal);
+        if (draft) {
+          console.log('Gemini API Direct analysis succeeded!');
+        }
       } catch(geminiErr) {
         console.warn('Gemini direct call failed, falling back:', geminiErr);
       }
@@ -812,20 +815,21 @@ async function executeAIAnalyze() {
   }
 }
 
-// ① Gemini API 直接呼出
-async function callGeminiDirect(apiKey, file, textContent) {
+// ① Gemini API 直接呼出 (Gemini 2.0 Flash / 1.5 Flash)
+async function callGeminiDirect(apiKey, b64Image, textContent) {
   const models = ['gemini-2.0-flash', 'gemini-1.5-flash'];
   
   for (const model of models) {
     try {
       const parts = [];
 
-      if (file) {
-        const b64 = await fileToBase64(file);
+      if (b64Image) {
+        const mimeType = b64Image.startsWith('data:image/png') ? 'image/png' : 'image/jpeg';
+        const rawB64 = b64Image.includes(',') ? b64Image.split(',')[1] : b64Image;
         parts.push({
           inline_data: {
-            mime_type: file.type || 'image/jpeg',
-            data: b64.split(',')[1]
+            mime_type: mimeType,
+            data: rawB64
           }
         });
         parts.push({
@@ -835,7 +839,10 @@ async function callGeminiDirect(apiKey, file, textContent) {
 
       if (textContent) {
         parts.push({
-          text: `【英語メッセージ本文】:\n${textContent}\n\nこの文章を日本語に全訳し、text_translation に入れてください。`
+          text: `【英語メッセージ本文】:
+${textContent}
+
+この文章を日本語に全訳し、text_translation に入れてください。`
         });
       }
 
