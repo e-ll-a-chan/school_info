@@ -262,29 +262,28 @@ function renderUpcomingEvents(posts) {
     `).join('');
 
     return `
-      <a href="#/post/${p.id}" class="otayori-card block p-3.5 flex items-center justify-between gap-3 hover:border-sky-300 transition no-underline">
-        <div class="flex items-center gap-3 min-w-0">
-          <div class="date-badge">
+      <a href="#/post/${p.id}" class="m3-card block p-4 flex items-center justify-between gap-3.5 no-underline">
+        <div class="flex items-center gap-3.5 min-w-0">
+          <div class="date-badge shadow-xs">
             <span class="day">${day}</span>
             <span class="month">${month}</span>
           </div>
           <div class="min-w-0">
             <div class="flex items-center gap-1.5">
-              <h4 class="font-extrabold text-xs text-stone-800 truncate">${escapeHtml(p.title)}</h4>
+              <h4 class="font-black text-xs text-stone-900 truncate">${escapeHtml(p.title)}</h4>
             </div>
-            <div class="flex items-center gap-1 mt-1 text-[11px] text-stone-500">
+            <div class="flex items-center gap-2 mt-1 text-[11px] text-stone-500 font-bold">
               ${timeStr}
               ${locStr}
             </div>
-            <div class="flex flex-wrap gap-1 mt-1.5">
+            <div class="flex flex-wrap gap-1.5 mt-2">
               ${itemsHtml}
             </div>
           </div>
         </div>
         <div class="flex flex-col items-end gap-1 flex-shrink-0">
-          <span class="text-emerald-700 font-bold text-xs flex items-center gap-0.5">
-            <span>詳細</span>
-            <span>›</span>
+          <span class="w-8 h-8 rounded-full bg-rose-50 text-rose-600 font-black text-xs flex items-center justify-center shadow-xs">
+            ›
           </span>
         </div>
       </a>
@@ -329,27 +328,27 @@ function renderPostsList(posts) {
       : '';
 
     return `
-      <a href="#/post/${p.id}" data-tags="${escapeHtml(rawTags)}" class="otayori-card block p-3.5 flex gap-3.5 hover:border-amber-300 transition no-underline">
-        <div class="w-16 h-20 rounded-xl bg-stone-100 border border-stone-200 overflow-hidden flex-shrink-0 flex items-center justify-center">
-          <img src="${pImg}" class="w-full h-full object-cover" alt="プリント" onerror="this.src='./static/samples/no_image.svg'">
+      <a href="#/post/${p.id}" data-tags="${escapeHtml(rawTags)}" class="m3-card block p-4 flex gap-3.5 no-underline">
+        <div class="w-18 h-22 rounded-2xl bg-[#F8F5EE] border border-stone-200/80 overflow-hidden flex-shrink-0 flex items-center justify-center p-1">
+          <img src="${pImg}" class="w-full h-full object-cover rounded-xl" alt="プリント" onerror="this.src='./static/samples/no_image.svg'">
         </div>
         <div class="flex-1 min-w-0 flex flex-col justify-between">
           <div>
             <div class="flex items-center gap-1.5 flex-wrap">
               ${tagsHtml}
-              ${pDateStr ? `<span class="text-[10px] text-stone-400 font-semibold ml-auto">${pDateStr}</span>` : ''}
+              ${pDateStr ? `<span class="text-[10px] text-stone-400 font-bold ml-auto">${pDateStr}</span>` : ''}
             </div>
-            <h3 class="text-xs font-extrabold text-stone-900 mt-1 truncate leading-tight">${escapeHtml(p.title)}</h3>
-            <p class="text-[10px] text-stone-400 truncate">${escapeHtml(p.title_en || '')}</p>
+            <h3 class="text-xs font-black text-stone-900 mt-1.5 truncate leading-tight">${escapeHtml(p.title)}</h3>
+            <p class="text-[10px] text-stone-400 font-bold truncate">${escapeHtml(p.title_en || '')}</p>
           </div>
-          <p class="text-[11px] text-stone-600 line-clamp-2 mt-1 leading-snug">${escapeHtml(summaryText)}</p>
-          <div class="flex items-center justify-between mt-2 pt-1.5 border-t border-stone-100 text-[10px]">
-            <div class="flex items-center gap-1.5 truncate max-w-[190px]">
+          <p class="text-[11px] text-stone-600 font-medium line-clamp-2 mt-1.5 leading-snug">${escapeHtml(summaryText)}</p>
+          <div class="flex items-center justify-between mt-2.5 pt-2 border-t border-stone-100 text-[10px]">
+            <div class="flex items-center gap-1.5 truncate max-w-[200px]">
               ${itemsBadge}
               ${dlBadge}
             </div>
-            <span class="text-emerald-700 font-bold flex items-center gap-0.5 flex-shrink-0">
-              <span>詳細</span>
+            <span class="text-rose-600 font-black flex items-center gap-0.5 flex-shrink-0">
+              <span>詳しく見る</span>
               <span class="text-xs">›</span>
             </span>
           </div>
@@ -495,15 +494,15 @@ function renderDetailPage(postId) {
 
   // ① メッセージカード
   const textCardHtml = (textTrans || textRaw) ? `
-    <div class="p-4 rounded-2xl bg-amber-50/50 border border-amber-200/80 space-y-3">
-      <h4 class="text-xs font-bold text-amber-900 flex items-center gap-1.5">
+    <div class="p-4.5 rounded-3xl bg-amber-50/80 border border-amber-200/90 space-y-3 shadow-xs">
+      <h4 class="text-xs font-black text-amber-950 flex items-center gap-1.5">
         <span>📱 メッセージ・メール本文の翻訳</span>
       </h4>
-      ${textTrans ? `<div class="text-xs leading-relaxed text-stone-800 bg-white p-3.5 rounded-xl border border-amber-200/50 whitespace-pre-wrap">${escapeHtml(textTrans)}</div>` : ''}
+      ${textTrans ? `<div class="text-xs leading-relaxed text-stone-900 bg-white p-4 rounded-2xl border border-amber-200/60 whitespace-pre-wrap font-bold shadow-xs">${escapeHtml(textTrans)}</div>` : ''}
       ${textRaw ? `
         <details class="text-xs pt-1">
-          <summary class="font-bold text-amber-700 cursor-pointer hover:text-amber-950">英語メッセージ原文を表示</summary>
-          <div class="mt-2 p-3 rounded-xl bg-white border border-stone-200 text-stone-600 text-[11px] font-mono whitespace-pre-wrap leading-relaxed">${escapeHtml(textRaw)}</div>
+          <summary class="font-black text-amber-900 cursor-pointer hover:text-amber-950">英語メッセージ原文を表示</summary>
+          <div class="mt-2 p-3.5 rounded-2xl bg-white border border-stone-200 text-stone-600 text-[11px] font-mono whitespace-pre-wrap leading-relaxed">${escapeHtml(textRaw)}</div>
         </details>
       ` : ''}
     </div>
@@ -511,20 +510,20 @@ function renderDetailPage(postId) {
 
   // ② 添付写真カード
   const imageCardHtml = (imgUrl || imgTrans || imgRaw) ? `
-    <div class="p-4 rounded-2xl bg-sky-50/50 border border-sky-200/80 space-y-3">
-      <h4 class="text-xs font-bold text-sky-900 flex items-center gap-1.5">
+    <div class="p-4.5 rounded-3xl bg-sky-50/80 border border-sky-200/90 space-y-3 shadow-xs">
+      <h4 class="text-xs font-black text-sky-950 flex items-center gap-1.5">
         <span>🖼️ 添付プリント写真 ＆ 画像内の翻訳</span>
       </h4>
       ${imgUrl ? `
-        <div class="w-full rounded-xl bg-white overflow-hidden border border-sky-200 flex items-center justify-center p-2">
-          <img src="${imgUrl}" class="max-h-72 w-auto object-contain rounded-lg shadow-sm" alt="プリント" onerror="this.style.display='none'">
+        <div class="w-full rounded-2xl bg-white overflow-hidden border border-sky-200 flex items-center justify-center p-2.5 shadow-xs">
+          <img src="${imgUrl}" class="max-h-72 w-auto object-contain rounded-xl" alt="プリント" onerror="this.style.display='none'">
         </div>
       ` : ''}
-      ${imgTrans ? `<div class="text-xs leading-relaxed text-stone-800 bg-white p-3.5 rounded-xl border border-sky-200/50 whitespace-pre-wrap">${escapeHtml(imgTrans)}</div>` : ''}
+      ${imgTrans ? `<div class="text-xs leading-relaxed text-stone-900 bg-white p-4 rounded-2xl border border-sky-200/60 whitespace-pre-wrap font-bold shadow-xs">${escapeHtml(imgTrans)}</div>` : ''}
       ${imgRaw ? `
         <details class="text-xs pt-1">
-          <summary class="font-bold text-sky-700 cursor-pointer hover:text-sky-950">画像から読み取った英語原文 (OCR) を表示</summary>
-          <div class="mt-2 p-3 rounded-xl bg-white border border-stone-200 text-stone-600 text-[11px] font-mono whitespace-pre-wrap leading-relaxed">${escapeHtml(imgRaw)}</div>
+          <summary class="font-black text-sky-900 cursor-pointer hover:text-sky-950">画像から読み取った英語原文 (OCR) を表示</summary>
+          <div class="mt-2 p-3.5 rounded-2xl bg-white border border-stone-200 text-stone-600 text-[11px] font-mono whitespace-pre-wrap leading-relaxed">${escapeHtml(imgRaw)}</div>
         </details>
       ` : ''}
     </div>
@@ -573,12 +572,12 @@ function renderDetailPage(postId) {
       ${textCardHtml}
       ${imageCardHtml}
 
-      <div class="pt-3 grid grid-cols-2 gap-2.5">
-        <a href="${googleCalUrl}" target="_blank" class="py-3 px-3 rounded-2xl bg-sky-50 text-sky-700 hover:bg-sky-100 border border-sky-200 font-bold text-xs flex items-center justify-center gap-1.5 transition text-center shadow-sm">
-          <span>📅 Googleカレンダーに追加</span>
+      <div class="pt-3 grid grid-cols-2 gap-3">
+        <a href="${googleCalUrl}" target="_blank" class="py-3.5 px-3 rounded-2xl bg-sky-50 text-sky-700 hover:bg-sky-100 border-1.5 border-sky-200 font-black text-xs flex items-center justify-center gap-1.5 transition text-center shadow-xs">
+          <span>📅 カレンダー追加</span>
         </a>
-        <a href="${lineUrl}" target="_blank" class="py-3 px-3 rounded-2xl bg-[#06C755] text-white hover:bg-[#05b34c] font-bold text-xs flex items-center justify-center gap-1.5 transition text-center shadow-sm">
-          <span>📲 LINEで家族に共有</span>
+        <a href="${lineUrl}" target="_blank" class="py-3.5 px-3 rounded-2xl bg-[#06C755] text-white hover:opacity-95 font-black text-xs flex items-center justify-center gap-1.5 transition text-center shadow-md">
+          <span>📲 LINEで共有</span>
         </a>
       </div>
 
