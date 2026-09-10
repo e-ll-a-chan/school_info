@@ -439,11 +439,69 @@ function renderDetailPage(postId) {
   const deadlineDesc = escapeHtml(post.deadline_description || '提出');
   const items = post.items || [];
   
-    const textTrans = (post.text_translation || (!post.image_url && post.summary && post.summary !== post.title ? post.summary : '') || '').trim();
+  const textTrans = (post.text_translation || (!post.image_url && post.summary && post.summary !== post.title ? post.summary : '') || '').trim();
   const textRaw = (post.text_raw || '').trim();
   const imgUrl = (post.image_url || '').trim();
   const imgTrans = (post.image_translation || (post.image_url && post.summary && post.summary !== post.title ? post.summary : '') || '').trim();
   const imgRaw = (post.image_raw || '').trim();
+
+  // タグHTML
+  const tagsHtml = (post.tags || []).map(t => {
+    let color = 'bg-stone-100 text-stone-600', icon = '🏷️';
+    if (t.includes('英語') || t.includes('UOI')) { color = 'bg-blue-50 text-blue-700 border border-blue-200'; icon = '📚'; }
+    else if (t.includes('中国語')) { color = 'bg-rose-50 text-rose-700 border border-rose-200'; icon = '🀄'; }
+    else if (t.includes('アート')) { color = 'bg-purple-50 text-purple-700 border border-purple-200'; icon = '🎨'; }
+    else if (t.includes('Music')) { color = 'bg-pink-50 text-pink-700 border border-pink-200'; icon = '🎵'; }
+    else if (t.includes('行事')) { color = 'bg-emerald-50 text-emerald-700 border border-emerald-200'; icon = '🏫'; }
+    else if (t.includes('提出物')) { color = 'bg-amber-50 text-amber-800 border border-amber-200'; icon = '⚠️'; }
+    else if (t.includes('Dgaeden') || t.includes('dgaeden')) { color = 'bg-teal-50 text-teal-800 border border-teal-200'; icon = '🌱'; }
+    return `<span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold ${color}">${icon} ${escapeHtml(t)}</span>`;
+  }).join('');
+
+  // 持ち物HTML
+  const itemsHtml = items.length > 0 ? `
+    <div class="p-3 rounded-2xl bg-amber-50/70 border border-amber-200/80 space-y-1.5">
+      <h4 class="text-xs font-bold text-amber-900 flex items-center gap-1">
+        <span>🎒 持ち物・持参するもの (${items.length}点)</span>
+      </h4>
+      <div class="flex flex-wrap gap-1 pt-0.5">
+        ${items.map(it => `<span class="item-tag text-xs px-2.5 py-1 font-bold shadow-xs">🎒 ${escapeHtml(it)}</span>`).join('')}
+      </div>
+    </div>
+  ` : '';
+
+  // 締切行
+  const dlRow = deadline ? `
+    <div class="flex items-center justify-between text-rose-600 font-bold border-t border-rose-100 pt-1.5 text-xs">
+      <span>⚠️ 提出締切:</span>
+      <span>${deadline.replace(/-/g, '/')} (${deadlineDesc})</span>
+    </div>
+  ` : '';
+
+  // 日時・場所・締切HTML
+  const dateTimeHtml = (dateVal || timeDisplay || location || deadline) ? `
+    <div class="p-3 rounded-2xl bg-stone-50 border border-stone-200 text-xs space-y-1.5">
+      ${dateVal ? `
+        <div class="flex items-center justify-between">
+          <span class="text-stone-500 font-medium">📅 日程:</span>
+          <span class="font-bold text-stone-800">${dateDisplay}</span>
+        </div>
+      ` : ''}
+      ${timeDisplay ? `
+        <div class="flex items-center justify-between">
+          <span class="text-stone-500 font-medium">⏰ 時間:</span>
+          <span class="font-bold text-stone-800">${timeDisplay}</span>
+        </div>
+      ` : ''}
+      ${location ? `
+        <div class="flex items-center justify-between">
+          <span class="text-stone-500 font-medium">📍 場所:</span>
+          <span class="font-bold text-stone-800">${location}</span>
+        </div>
+      ` : ''}
+      ${dlRow}
+    </div>
+  ` : '';
 
   // ① メッセージカード
   const textCardHtml = (textTrans || textRaw) ? `
@@ -481,7 +539,8 @@ function renderDetailPage(postId) {
       ` : ''}
     </div>
   ` : '';
-let shareText = `【おたより】${post.title}
+
+  let shareText = `【おたより】${post.title}
 
 `;
   if (textTrans) shareText += `📱 メッセージ:
