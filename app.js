@@ -439,65 +439,11 @@ function renderDetailPage(postId) {
   const deadlineDesc = escapeHtml(post.deadline_description || '提出');
   const items = post.items || [];
   
-  const textTrans = (post.text_translation || '').trim();
+    const textTrans = (post.text_translation || (!post.image_url && post.summary && post.summary !== post.title ? post.summary : '') || '').trim();
   const textRaw = (post.text_raw || '').trim();
   const imgUrl = (post.image_url || '').trim();
-  const imgTrans = (post.image_translation || '').trim();
+  const imgTrans = (post.image_translation || (post.image_url && post.summary && post.summary !== post.title ? post.summary : '') || '').trim();
   const imgRaw = (post.image_raw || '').trim();
-
-  const tagsHtml = (post.tags || []).map(t => {
-    let color = 'bg-stone-100 text-stone-600', icon = '🏷️';
-    if (t.includes('英語') || t.includes('UOI')) { color = 'bg-blue-50 text-blue-700 border border-blue-200'; icon = '📚'; }
-    else if (t.includes('中国語')) { color = 'bg-rose-50 text-rose-700 border border-rose-200'; icon = '🀄'; }
-    else if (t.includes('アート')) { color = 'bg-purple-50 text-purple-700 border border-purple-200'; icon = '🎨'; }
-    else if (t.includes('Music')) { color = 'bg-pink-50 text-pink-700 border border-pink-200'; icon = '🎵'; }
-    else if (t.includes('行事')) { color = 'bg-emerald-50 text-emerald-700 border border-emerald-200'; icon = '🏫'; }
-    else if (t.includes('提出物')) { color = 'bg-amber-50 text-amber-800 border border-amber-200'; icon = '⚠️'; }
-    else if (t.includes('Dgaeden') || t.includes('dgaeden')) { color = 'bg-teal-50 text-teal-800 border border-teal-200'; icon = '🌱'; }
-    return `<span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold ${color}">${icon} ${escapeHtml(t)}</span>`;
-  }).join('');
-
-  const itemsHtml = items.length > 0 ? `
-    <div class="p-3 rounded-2xl bg-amber-50/70 border border-amber-200/80 space-y-1.5">
-      <h4 class="text-xs font-bold text-amber-900 flex items-center gap-1">
-        <span>🎒 持ち物・持参するもの (${items.length}点)</span>
-      </h4>
-      <div class="flex flex-wrap gap-1 pt-0.5">
-        ${items.map(it => `<span class="item-tag text-xs px-2.5 py-1 font-bold shadow-xs">🎒 ${escapeHtml(it)}</span>`).join('')}
-      </div>
-    </div>
-  ` : '';
-
-  const dlRow = deadline ? `
-    <div class="flex items-center justify-between text-rose-600 font-bold border-t border-rose-100 pt-1.5 text-xs">
-      <span>⚠️ 提出締切:</span>
-      <span>${deadline.replace(/-/g, '/')} (${deadlineDesc})</span>
-    </div>
-  ` : '';
-
-  const dateTimeHtml = (dateVal || timeDisplay || location || deadline) ? `
-    <div class="p-3 rounded-2xl bg-stone-50 border border-stone-200 text-xs space-y-1.5">
-      ${dateVal ? `
-        <div class="flex items-center justify-between">
-          <span class="text-stone-500 font-medium">📅 日程:</span>
-          <span class="font-bold text-stone-800">${dateDisplay}</span>
-        </div>
-      ` : ''}
-      ${timeDisplay ? `
-        <div class="flex items-center justify-between">
-          <span class="text-stone-500 font-medium">⏰ 時間:</span>
-          <span class="font-bold text-stone-800">${timeDisplay}</span>
-        </div>
-      ` : ''}
-      ${location ? `
-        <div class="flex items-center justify-between">
-          <span class="text-stone-500 font-medium">📍 場所:</span>
-          <span class="font-bold text-stone-800">${location}</span>
-        </div>
-      ` : ''}
-      ${dlRow}
-    </div>
-  ` : '';
 
   // ① メッセージカード
   const textCardHtml = (textTrans || textRaw) ? `
@@ -535,8 +481,7 @@ function renderDetailPage(postId) {
       ` : ''}
     </div>
   ` : '';
-
-  let shareText = `【おたより】${post.title}
+let shareText = `【おたより】${post.title}
 
 `;
   if (textTrans) shareText += `📱 メッセージ:
@@ -1308,12 +1253,19 @@ function renderEditPage(postId) {
   editUploadedImageUrl = post.image_url || null;
   editSelectedTags = post.tags || ['英語・UOI'];
 
-  const backLink = document.getElementById('editBackLink'); if (backLink) backLink.href = `#/post/${postId}`;
+  const backLink = document.getElementById('editBackLink');
+  if (backLink) backLink.href = `#/post/${postId}`;
+  
   document.getElementById('editPostTitle').value = post.title || '';
   document.getElementById('editPostTitleEn').value = post.title_en || '';
-  document.getElementById('editPostTextTranslation').value = post.text_translation || '';
+  
+  // 翻訳データの事前セット（空なら summary から自動復元）
+  const textVal = post.text_translation || (!post.image_url && post.summary && post.summary !== post.title ? post.summary : '') || '';
+  const imgVal = post.image_translation || (post.image_url && post.summary && post.summary !== post.title ? post.summary : '') || '';
+
+  document.getElementById('editPostTextTranslation').value = textVal;
   document.getElementById('editPostTextRaw').value = post.text_raw || '';
-  document.getElementById('editPostImageTranslation').value = post.image_translation || '';
+  document.getElementById('editPostImageTranslation').value = imgVal;
   document.getElementById('editPostImageRaw').value = post.image_raw || '';
   document.getElementById('editPostDate').value = post.date || '';
   document.getElementById('editPostTimeStart').value = post.time_start || '';
@@ -1374,6 +1326,8 @@ function removeEditImage() {
 
 function submitEditPost(e) {
   e.preventDefault();
+  const oldPost = DB.getPostById(editPostId) || {};
+
   const title = document.getElementById('editPostTitle').value.trim();
   if (!title) {
     alert('タイトルを入力してください');
@@ -1381,29 +1335,37 @@ function submitEditPost(e) {
   }
 
   const itemsStr = document.getElementById('editPostItems').value;
-  const itemsArr = itemsStr ? itemsStr.split(',').map(s => s.trim()).filter(Boolean) : [];
+  const itemsArr = itemsStr ? itemsStr.split(',').map(s => s.trim()).filter(Boolean) : (oldPost.items || []);
 
-  const textTrans = document.getElementById('editPostTextTranslation').value.trim();
-  const textRaw = document.getElementById('editPostTextRaw').value.trim();
-  const imgTrans = document.getElementById('editPostImageTranslation').value.trim();
-  const imgRaw = document.getElementById('editPostImageRaw').value.trim();
+  const textTransInput = document.getElementById('editPostTextTranslation').value.trim();
+  const textRawInput = document.getElementById('editPostTextRaw').value.trim();
+  const imgTransInput = document.getElementById('editPostImageTranslation').value.trim();
+  const imgRawInput = document.getElementById('editPostImageRaw').value.trim();
+
+  // 翻訳データを厳格に保護：入力があればそれを使用、空欄でも既存データがあれば保持
+  const textTrans = textTransInput || oldPost.text_translation || null;
+  const textRaw = textRawInput || oldPost.text_raw || null;
+  const imgTrans = imgTransInput || oldPost.image_translation || null;
+  const imgRaw = imgRawInput || oldPost.image_raw || null;
+  const summaryVal = textTrans || imgTrans || oldPost.summary || title;
 
   const updateData = {
+    ...oldPost,
     title: title,
-    title_en: document.getElementById('editPostTitleEn').value.trim() || null,
-    text_translation: textTrans || null,
-    text_raw: textRaw || null,
-    image_translation: imgTrans || null,
-    image_raw: imgRaw || null,
-    summary: textTrans || imgTrans || title,
+    title_en: document.getElementById('editPostTitleEn').value.trim() || oldPost.title_en || null,
+    text_translation: textTrans,
+    text_raw: textRaw,
+    image_translation: imgTrans,
+    image_raw: imgRaw,
+    summary: summaryVal,
     date: document.getElementById('editPostDate').value || null,
     time_start: document.getElementById('editPostTimeStart').value || null,
     location: document.getElementById('editPostLocation').value.trim() || null,
     deadline: document.getElementById('editPostDeadline').value || null,
     deadline_description: document.getElementById('editPostDeadlineDesc').value.trim() || null,
     items: itemsArr,
-    tags: editSelectedTags,
-    image_url: editUploadedImageUrl
+    tags: editSelectedTags.length > 0 ? editSelectedTags : (oldPost.tags || ['英語・UOI']),
+    image_url: editUploadedImageUrl !== undefined ? editUploadedImageUrl : oldPost.image_url
   };
 
   DB.updatePost(editPostId, updateData);
