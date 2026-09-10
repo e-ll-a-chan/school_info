@@ -235,7 +235,7 @@ function renderHomePage() {
   renderPostsList(posts);
 }
 
-// 📅 直近の予定（今日以降の未来の予定のみを表示）
+// 📅 直近の予定（今日以降の未来の予定のみを表示 - コンパクト版）
 function renderUpcomingEvents(posts) {
   const container = document.getElementById('upcomingEventsList');
   if (!container) return;
@@ -247,7 +247,7 @@ function renderUpcomingEvents(posts) {
     .slice(0, 5);
 
   if (upcoming.length === 0) {
-    container.innerHTML = '<div class="text-center py-3 text-stone-400 text-xs">直近（予定あり）のおたよりはありません</div>';
+    container.innerHTML = '<div class="text-center py-2.5 text-stone-400 text-xs">直近（予定あり）のおたよりはありません</div>';
     return;
   }
 
@@ -258,31 +258,27 @@ function renderUpcomingEvents(posts) {
     const timeStr = p.time_start ? `<span>⏰ ${escapeHtml(p.time_start)}〜</span>` : '';
     const locStr = p.location ? `<span class="truncate">📍 ${escapeHtml(p.location)}</span>` : '';
     const itemsHtml = (p.items || []).slice(0, 3).map(it => `
-      <span class="item-tag truncate max-w-[130px]">🎒 ${escapeHtml(it.split('(')[0].trim())}</span>
+      <span class="item-tag truncate max-w-[120px]">🎒 ${escapeHtml(it.split('(')[0].trim())}</span>
     `).join('');
 
     return `
-      <a href="#/post/${p.id}" class="m3-card block p-4 flex items-center justify-between gap-3.5 no-underline">
-        <div class="flex items-center gap-3.5 min-w-0">
-          <div class="date-badge shadow-xs">
-            <span class="day">${day}</span>
-            <span class="month">${month}</span>
-          </div>
-          <div class="min-w-0">
-            <div class="flex items-center gap-1.5">
-              <h4 class="font-black text-xs text-stone-900 truncate">${escapeHtml(p.title)}</h4>
+      <a href="#/post/${p.id}" class="m3-card post-card otayori-card block p-3 no-underline">
+        <div class="flex items-center justify-between gap-3">
+          <div class="flex items-center gap-3 min-w-0 flex-1">
+            <div class="date-badge">
+              <span class="day">${day}</span>
+              <span class="month">${month}</span>
             </div>
-            <div class="flex items-center gap-2 mt-1 text-[11px] text-stone-500 font-bold">
-              ${timeStr}
-              ${locStr}
-            </div>
-            <div class="flex flex-wrap gap-1.5 mt-2">
-              ${itemsHtml}
+            <div class="min-w-0 flex-1">
+              <h4 class="font-bold text-xs text-stone-900 truncate leading-snug">${escapeHtml(p.title)}</h4>
+              <div class="flex items-center gap-2 mt-0.5 text-[11px] text-stone-500 font-medium">
+                ${timeStr}
+                ${locStr}
+              </div>
+              ${itemsHtml ? `<div class="flex flex-wrap gap-1 mt-1.5">${itemsHtml}</div>` : ''}
             </div>
           </div>
-        </div>
-        <div class="flex flex-col items-end gap-1 flex-shrink-0">
-          <span class="w-8 h-8 rounded-full bg-rose-50 text-rose-600 font-black text-xs flex items-center justify-center shadow-xs">
+          <span class="w-6 h-6 rounded-full bg-rose-50 text-rose-500 font-bold text-xs flex items-center justify-center flex-shrink-0">
             ›
           </span>
         </div>
@@ -291,13 +287,14 @@ function renderUpcomingEvents(posts) {
   }).join('');
 }
 
+// 📑 届いたおたより一覧（横書き・読みやすいコンパクトM3カード）
 function renderPostsList(posts) {
   const container = document.getElementById('postsList');
   const countEl = document.getElementById('postsCount');
   if (!container) return;
 
   if (posts.length === 0) {
-    container.innerHTML = '<div class="text-center py-8 text-stone-400 text-xs">おたよりはありません</div>';
+    container.innerHTML = '<div class="text-center py-6 text-stone-400 text-xs">おたよりはありません</div>';
     if (countEl) countEl.innerText = '0件';
     return;
   }
@@ -305,53 +302,66 @@ function renderPostsList(posts) {
   container.innerHTML = posts.map(p => {
     const rawTags = (p.tags || []).join(',');
     const pDateStr = p.date ? `📅 ${p.date.replace(/-/g, '/')}` : '';
-    const pImg = p.image_url || './static/samples/no_image.svg';
+    const hasRealImage = Boolean(p.image_url && !p.image_url.includes('no_image.svg'));
     const summaryText = p.summary || p.text_translation || p.image_translation || p.title;
 
     const tagsHtml = (p.tags || []).map(t => {
       let color = 'bg-stone-100 text-stone-600', icon = '🏷️';
-      if (t.includes('英語') || t.includes('UOI')) { color = 'bg-blue-100 text-blue-800'; icon = '📚'; }
-      else if (t.includes('中国語')) { color = 'bg-red-100 text-red-800'; icon = '🀄'; }
-      else if (t.includes('アート')) { color = 'bg-purple-100 text-purple-800'; icon = '🎨'; }
-      else if (t.includes('Music')) { color = 'bg-pink-100 text-pink-800'; icon = '🎵'; }
-      else if (t.includes('行事')) { color = 'bg-emerald-100 text-emerald-800'; icon = '🏫'; }
-      else if (t.includes('提出物')) { color = 'bg-amber-100 text-amber-800'; icon = '⚠️'; }
-      else if (t.includes('Dgaeden') || t.includes('dgaeden')) { color = 'bg-teal-100 text-teal-800 border border-teal-200'; icon = '🌱'; }
-      return `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold ${color}">${icon} ${escapeHtml(t)}</span>`;
+      if (t.includes('英語') || t.includes('UOI')) { color = 'bg-blue-50 text-blue-700 border border-blue-200'; icon = '📚'; }
+      else if (t.includes('中国語')) { color = 'bg-rose-50 text-rose-700 border border-rose-200'; icon = '🀄'; }
+      else if (t.includes('アート')) { color = 'bg-purple-50 text-purple-700 border border-purple-200'; icon = '🎨'; }
+      else if (t.includes('Music')) { color = 'bg-pink-50 text-pink-700 border border-pink-200'; icon = '🎵'; }
+      else if (t.includes('行事')) { color = 'bg-emerald-50 text-emerald-700 border border-emerald-200'; icon = '🏫'; }
+      else if (t.includes('提出物')) { color = 'bg-amber-50 text-amber-800 border border-amber-200'; icon = '⚠️'; }
+      else if (t.includes('Dgaeden') || t.includes('dgaeden')) { color = 'bg-teal-50 text-teal-800 border border-teal-200'; icon = '🌱'; }
+      return `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${color}">${icon} ${escapeHtml(t)}</span>`;
     }).join('');
 
     const itemsBadge = (p.items && p.items.length > 0)
-      ? `<span class="text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded font-bold">🎒 持ち物 ${p.items.length}点</span>`
+      ? `<span class="text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-md font-bold text-[10px]">🎒 持ち物 ${p.items.length}点</span>`
       : '';
     const dlBadge = p.deadline
-      ? `<span class="text-red-700 bg-red-50 px-1.5 py-0.5 rounded font-bold">⚠️ 締切: ${p.deadline.replace(/-/g, '/')}</span>`
+      ? `<span class="text-rose-700 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded-md font-bold text-[10px]">⚠️ 締切: ${p.deadline.replace(/-/g, '/')}</span>`
+      : '';
+    const imgBadge = hasRealImage
+      ? `<span class="text-sky-700 bg-sky-50 border border-sky-200 px-1.5 py-0.5 rounded-md font-bold text-[10px]">🖼️ 写真あり</span>`
       : '';
 
     return `
-      <a href="#/post/${p.id}" data-tags="${escapeHtml(rawTags)}" class="m3-card block p-4 flex gap-3.5 no-underline">
-        <div class="w-18 h-22 rounded-2xl bg-[#F8F5EE] border border-stone-200/80 overflow-hidden flex-shrink-0 flex items-center justify-center p-1">
-          <img src="${pImg}" class="w-full h-full object-cover rounded-xl" alt="プリント" onerror="this.src='./static/samples/no_image.svg'">
+      <a href="#/post/${p.id}" data-tags="${escapeHtml(rawTags)}" class="m3-card post-card otayori-card block p-3.5 no-underline">
+        <!-- 上部：タグ ＆ 日程 -->
+        <div class="flex items-center justify-between gap-2 mb-2">
+          <div class="flex items-center gap-1.5 flex-wrap min-w-0">
+            ${tagsHtml}
+          </div>
+          ${pDateStr ? `<span class="text-[11px] text-stone-500 font-bold whitespace-nowrap flex-shrink-0">${pDateStr}</span>` : ''}
         </div>
-        <div class="flex-1 min-w-0 flex flex-col justify-between">
-          <div>
-            <div class="flex items-center gap-1.5 flex-wrap">
-              ${tagsHtml}
-              ${pDateStr ? `<span class="text-[10px] text-stone-400 font-bold ml-auto">${pDateStr}</span>` : ''}
+
+        <!-- 中部：サムネイル ＋ テキスト（横並びレイアウト） -->
+        <div class="flex items-start gap-3">
+          ${hasRealImage ? `
+            <div class="card-thumb-box" style="width:48px !important;height:48px !important;min-width:48px !important;min-height:48px !important;max-width:48px !important;max-height:48px !important;flex-shrink:0 !important;border-radius:12px;overflow:hidden;background:#F8F5EE;border:1px solid #EAE3D9;display:flex;align-items:center;justify-content:center;">
+              <img src="${p.image_url}" class="card-thumb-img" style="width:48px !important;height:48px !important;max-width:48px !important;max-height:48px !important;object-fit:cover !important;display:block;" alt="プリント" onerror="this.parentElement.style.display='none'">
             </div>
-            <h3 class="text-xs font-black text-stone-900 mt-1.5 truncate leading-tight">${escapeHtml(p.title)}</h3>
-            <p class="text-[10px] text-stone-400 font-bold truncate">${escapeHtml(p.title_en || '')}</p>
+          ` : ''}
+          <div class="flex-1 min-w-0">
+            <h3 class="text-xs sm:text-sm font-bold text-stone-900 leading-snug break-words">${escapeHtml(p.title)}</h3>
+            ${p.title_en ? `<p class="text-[10px] text-stone-400 font-medium truncate mt-0.5">${escapeHtml(p.title_en)}</p>` : ''}
+            <p class="text-[11px] text-stone-600 font-normal line-clamp-2 mt-1 leading-relaxed break-words">${escapeHtml(summaryText)}</p>
           </div>
-          <p class="text-[11px] text-stone-600 font-medium line-clamp-2 mt-1.5 leading-snug">${escapeHtml(summaryText)}</p>
-          <div class="flex items-center justify-between mt-2.5 pt-2 border-t border-stone-100 text-[10px]">
-            <div class="flex items-center gap-1.5 truncate max-w-[200px]">
-              ${itemsBadge}
-              ${dlBadge}
-            </div>
-            <span class="text-rose-600 font-black flex items-center gap-0.5 flex-shrink-0">
-              <span>詳しく見る</span>
-              <span class="text-xs">›</span>
-            </span>
+        </div>
+
+        <!-- 下部：持ち物・締切バッジ ＆ 詳細リンク -->
+        <div class="flex items-center justify-between mt-2.5 pt-2 border-t border-stone-100 text-[11px]">
+          <div class="flex items-center gap-1.5 flex-wrap min-w-0">
+            ${itemsBadge}
+            ${dlBadge}
+            ${imgBadge}
           </div>
+          <span class="text-rose-500 font-bold flex items-center gap-0.5 ml-auto flex-shrink-0">
+            <span>詳細を見る</span>
+            <span class="text-xs font-black">›</span>
+          </span>
         </div>
       </a>
     `;
@@ -366,16 +376,14 @@ function filterByTag(tag, el) {
 
   const allBtns = document.querySelectorAll('.tag-filter-btn');
   allBtns.forEach(btn => {
-    btn.classList.remove('bg-stone-800', 'text-white', 'shadow-sm', 'active');
-    btn.classList.add('bg-white', 'text-stone-600');
+    btn.classList.remove('active');
   });
 
   if (el) {
-    el.classList.remove('bg-white', 'text-stone-600');
-    el.classList.add('bg-stone-800', 'text-white', 'shadow-sm', 'active');
+    el.classList.add('active');
   }
 
-  const cards = document.querySelectorAll('#postsList .otayori-card');
+  const cards = document.querySelectorAll('#postsList .otayori-card, #postsList .m3-card, #postsList .post-card');
   let matchCount = 0;
 
   cards.forEach(card => {
@@ -394,7 +402,7 @@ function filterByTag(tag, el) {
     }
 
     if (isMatch) {
-      card.style.setProperty('display', 'flex', 'important');
+      card.style.removeProperty('display');
       matchCount++;
     } else {
       card.style.setProperty('display', 'none', 'important');
@@ -404,8 +412,6 @@ function filterByTag(tag, el) {
   const countEl = document.getElementById('postsCount');
   if (countEl) countEl.innerText = `${matchCount}件`;
 }
-
-
 
 // --- 詳細画面描画 (コンパクト ＆ スマホ最適化) ---
 function renderDetailPage(postId) {
