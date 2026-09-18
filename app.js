@@ -93,35 +93,59 @@ const INITIAL_SAMPLE_POSTS = [
   }
 ];
 
-// --- ストレージ管理 ---
+// --- ストレージ管理 (インメモリキャッシュ ＆ 容量上限ガード付き) ---
+let _postsCache = null;
+
 const DB = {
   getPosts: function() {
+    if (_postsCache !== null) {
+      return _postsCache;
+    }
+    
     try {
       const data = localStorage.getItem('otayori_posts_v1');
       if (data !== null) {
-        return JSON.parse(data);
+        _postsCache = JSON.parse(data);
+        return _postsCache;
       }
     } catch(e) {
-      console.error('Storage read error:', e);
+      console.warn('Storage read error:', e);
     }
-    
+
     // 初回起動時のみサンプルデータを注入
     const hasInit = localStorage.getItem('otayori_has_initialized_v1');
     if (!hasInit) {
-      localStorage.setItem('otayori_has_initialized_v1', 'true');
-      localStorage.setItem('otayori_posts_v1', JSON.stringify(INITIAL_SAMPLE_POSTS));
-      return INITIAL_SAMPLE_POSTS;
+      try {
+        localStorage.setItem('otayori_has_initialized_v1', 'true');
+        localStorage.setItem('otayori_posts_v1', JSON.stringify(INITIAL_SAMPLE_POSTS));
+      } catch(e) {}
+      _postsCache = [...INITIAL_SAMPLE_POSTS];
+      return _postsCache;
     }
-    
-    return [];
+
+    _postsCache = [];
+    return _postsCache;
   },
 
   savePosts: function(posts) {
+    _postsCache = posts;
     try {
       localStorage.setItem('otayori_has_initialized_v1', 'true');
       localStorage.setItem('otayori_posts_v1', JSON.stringify(posts));
     } catch(e) {
-      console.error('Storage write error:', e);
+      console.warn('LocalStorage quota reached, optimizing storage...', e);
+      // 容量超過時：古い投稿の写真データを軽量化して確実に保存
+      try {
+        const lightweightPosts = posts.map((p, idx) => {
+          if (idx >= 2 && p.image_url && p.image_url.length > 50000) {
+            return { ...p, image_url: null };
+          }
+          return p;
+        });
+        localStorage.setItem('otayori_posts_v1', JSON.stringify(lightweightPosts));
+      } catch(e2) {
+        console.error('Fatal storage save error:', e2);
+      }
     }
   },
 
@@ -133,7 +157,7 @@ const DB = {
   addPost: function(postData) {
     const posts = this.getPosts();
     if (!postData.id) {
-      postData.id = Math.random().toString(36).substring(2, 10);
+      postData.id = 'p_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6);
     }
     if (!postData.created_at) {
       postData.created_at = new Date().toISOString();
@@ -174,7 +198,9 @@ const DB = {
   },
 
   saveSettings: function(settings) {
-    localStorage.setItem('otayori_settings_v1', JSON.stringify(settings));
+    try {
+      localStorage.setItem('otayori_settings_v1', JSON.stringify(settings));
+    } catch(e) {}
   }
 };
 
@@ -1296,12 +1322,14 @@ function submitNewPost(e) {
     deadline: document.getElementById('newPostDeadline').value || null,
     deadline_description: document.getElementById('newPostDeadlineDesc').value.trim() || null,
     items: itemsArr,
-    tags: newSelectedTags,
+    tags: (newSelectedTags && newSelectedTags.length > 0) ? newSelectedTags : ['英語・UOI'],
     image_url: newUploadedImageUrl
   };
 
   const saved = DB.addPost(postData);
+  alert('✨ 新しいおたよりを保存しました！');
   window.location.hash = `#/post/${saved.id}`;
+  renderDetailPage(saved.id);
 }
 
 // --- 編集画面描画 ---
@@ -1503,6 +1531,7 @@ function escapeHtml(str) {
 // データの全削除・初期化
 function resetAllPostsData() {
   if (!confirm('⚠️ すべてのおたよりデータを完全に消去して初期化しますか？\n（※この操作は取り消せません）')) return;
+  _postsCache = [];
   DB.savePosts([]);
   alert('🧹 すべてのおたよりデータを削除しました。');
   closeSettingsModal();
