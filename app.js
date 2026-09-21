@@ -466,7 +466,7 @@ function renderDetailPage(postId) {
   const items = post.items || [];
   
   // 翻訳本文 (text_translation / image_translation / summary を統合)
-  const transText = (post.text_translation || post.image_translation || (post.summary && post.summary !== post.title ? post.summary : '') || '').trim();
+  const transText = formatWithDateDividers((post.text_translation || post.image_translation || (post.summary && post.summary !== post.title ? post.summary : '') || '').trim());
   const rawText = (post.text_raw || post.image_raw || '').trim();
   const imgUrl = (post.image_url || '').trim();
 
@@ -838,6 +838,45 @@ async function executeAIAnalyze() {
   }
 }
 
+// 🌟 日付・セッション区切り線の自動挿入フォーマッター（AI・OCR・手入力すべてに完全対応）
+function formatWithDateDividers(text) {
+  if (!text || typeof text !== 'string') return text || '';
+  
+  const lines = text.split('\n');
+  const result = [];
+  
+  // セッション、日付、回数などのヘッダーを検知
+  const sessionRegex = /^(?:[■📅【\s]*)(?:セッション\s*[0-9０-９]+|session\s*[0-9]+|第\s*[0-9０-９]+\s*回|(?:1[0-2]|[1-9])\s*月\s*(?:[1-3][0-9]|[1-9])\s*日|(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s*\d{1,2})/i;
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+    
+    // この行がセッション・日付ヘッダーの場合
+    if (sessionRegex.test(trimmed)) {
+      // 直前の非空行にすでに区切り線があるか確認
+      let hasPrevDivider = false;
+      for (let prevIdx = result.length - 1; prevIdx >= 0; prevIdx--) {
+        const prevLine = result[prevIdx].trim();
+        if (!prevLine) continue;
+        if (prevLine.startsWith('===') || prevLine.startsWith('━━━') || prevLine.startsWith('---')) {
+          hasPrevDivider = true;
+        }
+        break;
+      }
+      
+      // 直前に区切り線がなく、かつすでに何らかの内容がある場合は区切りを挿入
+      if (!hasPrevDivider && result.length > 0) {
+        result.push("==============================");
+      }
+    }
+    
+    result.push(line);
+  }
+  
+  return result.join('\n');
+}
+
 // ① Gemini API 直接呼出 (Gemini 2.0 Flash / 1.5 Flash)
 async function callGeminiDirect(apiKey, b64Image, textContent) {
   const models = ['gemini-2.0-flash', 'gemini-1.5-flash'];
@@ -966,7 +1005,11 @@ ${textContent}
       const data = await res.json();
       const rawOut = data.candidates[0].content.parts[0].text;
       const cleanJson = rawOut.replace(/```json/g, '').replace(/```/g, '').trim();
-      return JSON.parse(cleanJson);
+      const parsed = JSON.parse(cleanJson);
+      if (parsed.image_translation) parsed.image_translation = formatWithDateDividers(parsed.image_translation);
+      if (parsed.text_translation) parsed.text_translation = formatWithDateDividers(parsed.text_translation);
+      if (parsed.summary) parsed.summary = formatWithDateDividers(parsed.summary);
+      return parsed;
     } catch (err) {
       console.warn(`Gemini Direct Error (${model}):`, err);
     }
@@ -981,14 +1024,14 @@ async function clientSideTranslateEngine(text, file, b64Image) {
   let imageTrans = "";
 
   if (text) {
-    textTrans = await clientTranslate(text);
+    textTrans = formatWithDateDividers(await clientTranslate(text));
   }
 
   if (b64Image) {
     console.log('Extracting text from image via client OCR...');
     imageRaw = await clientOCR(b64Image);
     if (imageRaw) {
-      imageTrans = await clientTranslate(imageRaw);
+      imageTrans = formatWithDateDividers(await clientTranslate(imageRaw));
     } else {
       imageTrans = "（添付写真あり・プリントの内容を確認してタイトルや持ち物を登録できます）";
     }
@@ -1302,7 +1345,7 @@ function populateNewForm(draft, hasTextInput, hasImageInput) {
   const textSection = document.getElementById('newTextMessageSection');
   if (hasText) {
     textSection.classList.remove('hidden');
-    document.getElementById('newPostTextTranslation').value = draft.text_translation || '';
+    document.getElementById('newPostTextTranslation').value = formatWithDateDividers(draft.text_translation || '');
     document.getElementById('newPostTextRaw').value = draft.text_raw || '';
   } else {
     textSection.classList.add('hidden');
@@ -1313,7 +1356,7 @@ function populateNewForm(draft, hasTextInput, hasImageInput) {
   const imageSection = document.getElementById('newImageMessageSection');
   if (hasImage) {
     imageSection.classList.remove('hidden');
-    document.getElementById('newPostImageTranslation').value = draft.image_translation || '';
+    document.getElementById('newPostImageTranslation').value = formatWithDateDividers(draft.image_translation || '');
     document.getElementById('newPostImageRaw').value = draft.image_raw || '';
     if (newUploadedImageUrl) {
       document.getElementById('newPreviewImageEl').src = newUploadedImageUrl;
@@ -1359,9 +1402,9 @@ function submitNewPost(e) {
   const postData = {
     title: title,
     title_en: document.getElementById('newPostTitleEn').value.trim() || null,
-    text_translation: textTrans || null,
+    text_translation: textTrans ? formatWithDateDividers(textTrans) : null,
     text_raw: textRaw || null,
-    image_translation: imgTrans || null,
+    image_translation: imgTrans ? formatWithDateDividers(imgTrans) : null,
     image_raw: imgRaw || null,
     summary: textTrans || imgTrans || title,
     date: document.getElementById('newPostDate').value || null,
@@ -1403,7 +1446,7 @@ function renderEditPage(postId) {
   document.getElementById('editPostTitleEn').value = post.title_en || '';
   
   // 統合された翻訳テキストと英語原文を確実にフォームへセット
-  const currentTrans = post.text_translation || post.image_translation || (post.summary && post.summary !== post.title ? post.summary : '') || '';
+  const currentTrans = formatWithDateDividers(post.text_translation || post.image_translation || (post.summary && post.summary !== post.title ? post.summary : '') || '');
   const currentRaw = post.text_raw || post.image_raw || '';
   
   document.getElementById('editPostTranslation').value = currentTrans;
@@ -1487,7 +1530,7 @@ function submitEditPost(e) {
     id: editPostId,
     title: title,
     title_en: document.getElementById('editPostTitleEn').value.trim() || null,
-    text_translation: transVal || null,
+    text_translation: transVal ? formatWithDateDividers(transVal) : null,
     image_translation: editUploadedImageUrl ? (transVal || null) : null,
     text_raw: rawVal || null,
     image_raw: editUploadedImageUrl ? (rawVal || null) : null,
