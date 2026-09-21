@@ -662,6 +662,35 @@ function renderNewPage() {
   document.getElementById('newLoadingBox').classList.add('hidden');
   document.getElementById('newResultForm').classList.add('hidden');
   renderNewTags();
+  updateAiEngineStatusBanner();
+}
+
+function updateAiEngineStatusBanner() {
+  const banner = document.getElementById('aiEngineStatusBanner');
+  if (!banner) return;
+  const settings = DB.getSettings();
+  const apiKey = (settings.gemini_api_key || '').trim();
+  if (apiKey) {
+    banner.innerHTML = `
+      <div class="p-2.5 rounded-2xl bg-purple-50 border border-purple-200 text-purple-900 text-xs flex items-center justify-between shadow-xs">
+        <div class="flex items-center gap-1.5 font-bold">
+          <span>✨ Gemini AI 高精度モード:</span>
+          <span class="text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full text-[10px] font-black">有効</span>
+        </div>
+        <button type="button" onclick="openSettingsModal()" class="text-purple-700 hover:text-purple-900 underline text-[11px] font-bold">キー設定</button>
+      </div>
+    `;
+  } else {
+    banner.innerHTML = `
+      <div class="p-3 rounded-2xl bg-amber-50 border border-amber-300 text-amber-950 text-xs space-y-1 shadow-xs">
+        <div class="flex items-center justify-between font-bold">
+          <span class="flex items-center gap-1">⚠️ <span>簡易読取モード（OCR）</span></span>
+          <button type="button" onclick="openSettingsModal()" class="px-2.5 py-1 rounded-xl bg-amber-200 hover:bg-amber-300 text-amber-950 text-[11px] font-black transition">Geminiキーを設定</button>
+        </div>
+        <p class="text-[10px] text-amber-800 leading-relaxed font-medium">※プリント写真の表やスケジュールをGeminiが直接綺麗に翻訳するには、⚙️設定から無料のGemini APIキーを入力してください。</p>
+      </div>
+    `;
+  }
 }
 
 function renderNewTags() {
@@ -777,10 +806,12 @@ async function executeAIAnalyze() {
         if (draft) {
           console.log('✨ Gemini AI Direct analysis succeeded!');
         } else {
-          console.warn('Gemini direct call returned null (check API Key in settings), falling back...');
+          console.warn('Gemini direct call returned null, falling back...');
+          alert('⚠️ Gemini API呼出に失敗しました（APIキーの有効性や通信状態をご確認ください）。\n簡易OCRモードで読取を継続します。');
         }
       } catch(geminiErr) {
         console.warn('Gemini direct call failed, falling back:', geminiErr);
+        alert('⚠️ Gemini API通信エラー: ' + (geminiErr.message || 'エラー') + '\n簡易OCRモードで読取を継続します。');
       }
     } else {
       console.log('No Gemini API Key set in settings. Using Client OCR translation fallback.');
@@ -1595,6 +1626,7 @@ function saveSettings(e) {
   DB.saveSettings(settings);
   closeSettingsModal();
   document.getElementById('userNameDisplay').innerText = settings.user_name;
+  updateAiEngineStatusBanner();
   alert('⚙️ 設定を保存しました！');
 }
 
