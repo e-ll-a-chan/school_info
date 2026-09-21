@@ -950,12 +950,49 @@ function formatWithDateDividers(text) {
   return result.join('\n');
 }
 
-// ① Gemini API 直接呼出 (Gemini 1.5 Flash / 2.0 Flash / 1.5 Pro)
+// ① Gemini API 直接呼出 (自動モデル検出 & 最適フォールバック)
 let lastGeminiErrorDetails = '';
+
+async function getAvailableGeminiModels(apiKey) {
+  try {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey.trim()}`;
+    const res = await fetch(url);
+    if (res.ok) {
+      const data = await res.json();
+      if (data.models && Array.isArray(data.models)) {
+        const validModels = data.models
+          .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent'))
+          .map(m => m.name.replace('models/', ''));
+        
+        const preferred = ['gemini-2.0-flash', 'gemini-1.5-flash-latest', 'gemini-1.5-flash', 'gemini-2.0-flash-exp', 'gemini-1.5-flash-002', 'gemini-1.5-flash-001', 'gemini-pro-vision', 'gemini-1.5-pro-latest'];
+        const sorted = [];
+        for (const p of preferred) {
+          if (validModels.includes(p)) sorted.push(p);
+        }
+        for (const m of validModels) {
+          if (!sorted.includes(m) && m.includes('gemini') && !m.includes('embedding') && !m.includes('imagen')) {
+            sorted.push(m);
+          }
+        }
+        if (sorted.length > 0) return sorted;
+      }
+    } else {
+      const errJson = await res.json().catch(() => ({}));
+      if (errJson?.error?.message) {
+        lastGeminiErrorDetails = errJson.error.message;
+      }
+    }
+  } catch(e) {
+    lastGeminiErrorDetails = e.message;
+  }
+  
+  return ['gemini-1.5-flash-latest', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-2.0-flash-exp', 'gemini-1.5-flash-002', 'gemini-1.5-flash-001'];
+}
 
 async function callGeminiDirect(apiKey, b64Image, textContent) {
   lastGeminiErrorDetails = '';
-  const models = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'];
+  const models = await getAvailableGeminiModels(apiKey);
+  console.log('Available Gemini Models for this API Key:', models);
   
   const systemPrompt = `
 あなたは学校・幼稚園・インターナショナルスクール等の英語のおたより（Newsletters, Schedule Tables, Event Notices, Handouts）を、保護者向けに極めて分かりやすく丁寧な日本語に翻訳・整理・構造化する専門AIです。
