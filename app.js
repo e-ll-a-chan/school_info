@@ -833,11 +833,11 @@ async function executeAIAnalyze() {
           console.log('✨ Gemini AI Direct analysis succeeded!');
         } else {
           console.warn('Gemini direct call returned null, falling back...');
-          alert('⚠️ Gemini API呼出に失敗しました（APIキーの有効性や通信状態をご確認ください）。\n簡易OCRモードで読取を継続します。');
+          alert(`⚠️ Gemini API呼出に失敗しました。\n\n【エラー詳細】\n${lastGeminiErrorDetails || 'APIキーまたは通信エラー'}\n\n（簡易OCRモードで読取を継続します）`);
         }
       } catch(geminiErr) {
-        console.warn('Gemini direct call failed, falling back:', geminiErr);
-        alert('⚠️ Gemini API通信エラー: ' + (geminiErr.message || 'エラー') + '\n簡易OCRモードで読取を継続します。');
+        console.warn('Gemini direct call failed:', geminiErr);
+        alert(`⚠️ Gemini API通信エラー: ${geminiErr.message}\n（簡易OCRモードで読取を継続します）`);
       }
     } else {
       console.log('No Gemini API Key set in settings. Using Client OCR translation fallback.');
@@ -950,15 +950,14 @@ function formatWithDateDividers(text) {
   return result.join('\n');
 }
 
-// ① Gemini API 直接呼出 (Gemini 2.0 Flash / 1.5 Flash / 1.5 Pro)
-async function callGeminiDirect(apiKey, b64Image, textContent) {
-  const models = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'];
-  
-  for (const model of models) {
-    try {
-      const parts = [];
+// ① Gemini API 直接呼出 (Gemini 1.5 Flash / 2.0 Flash / 1.5 Pro)
+let lastGeminiErrorDetails = '';
 
-      const systemPrompt = `
+async function callGeminiDirect(apiKey, b64Image, textContent) {
+  lastGeminiErrorDetails = '';
+  const models = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'];
+  
+  const systemPrompt = `
 あなたは学校・幼稚園・インターナショナルスクール等の英語のおたより（Newsletters, Schedule Tables, Event Notices, Handouts）を、保護者向けに極めて分かりやすく丁寧な日本語に翻訳・整理・構造化する専門AIです。
 必ず以下のJSON形式のみを出力してください（Markdownコードブロック不要、純粋なJSON）。
 
@@ -1032,45 +1031,45 @@ async function callGeminiDirect(apiKey, b64Image, textContent) {
   "tags": ["英語・UOI", "アート", "持ち物あり"]
 }
 `;
-      parts.push({ text: systemPrompt });
 
-      if (b64Image) {
-        const mimeType = b64Image.startsWith('data:image/png') ? 'image/png' : 'image/jpeg';
-        const rawB64 = b64Image.includes(',') ? b64Image.split(',')[1] : b64Image;
-        parts.push({
-          inlineData: {
-            mimeType: mimeType,
-            data: rawB64
-          }
-        });
-        parts.push({
-          text: "この学校・園のおたより・プリント画像を正確に読み取り、指定のJSON形式のみで出力してください。特に表（スケジュール、日付ごとの活動、持ち物リスト等）が含まれている場合は、各セッションや日にちごとに「==============================」の明確な区切り線を入れて、見出し・日付・プロジェクト名・必要な材料（個数や仕様を含む）を箇条書きで分かりやすく構造化して image_translation に入れてください。image_raw には読み取った英語原文を入れてください。"
-        });
+  const parts = [];
+
+  if (b64Image) {
+    const mimeMatch = b64Image.match(/^data:([^;]+);/);
+    const mimeType = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+    const rawB64 = b64Image.includes(',') ? b64Image.split(',')[1] : b64Image;
+    parts.push({
+      inlineData: {
+        mimeType: mimeType,
+        data: rawB64
       }
+    });
+    parts.push({
+      text: systemPrompt + "\n\n添付のプリント画像を読み取り、上記の指示に従って指定のJSON形式のみで出力してください。"
+    });
+  }
 
-      if (textContent) {
-        parts.push({
-          text: `【英語メッセージ本文】:
-${textContent}
+  if (textContent) {
+    parts.push({
+      text: systemPrompt + `\n\n【英語メッセージ本文】:\n${textContent}\n\n上記の文章を自然な日本語に翻訳し、指定のJSON形式のみで出力してください。`
+    });
+  }
 
-この文章を自然で分かりやすい日本語に全訳し、text_translation に入れてください。表や日程がある場合はセッションごとに「==============================」で区切ってください。`
-        });
-      }
-
+  for (const model of models) {
+    try {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey.trim()}`;
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [{ parts: parts }],
-          generationConfig: {
-            responseMimeType: "application/json"
-          }
+          contents: [{ parts: parts }]
         })
       });
 
       if (!res.ok) {
         const errJson = await res.json().catch(() => ({}));
+        const msg = errJson?.error?.message || `HTTP ${res.status}`;
+        lastGeminiErrorDetails = `[${model}] ${msg}`;
         console.warn(`Model ${model} error (HTTP ${res.status}):`, errJson);
         continue;
       }
@@ -1078,17 +1077,30 @@ ${textContent}
       const data = await res.json();
       const rawOut = data.candidates?.[0]?.content?.parts?.[0]?.text;
       if (!rawOut) {
+        lastGeminiErrorDetails = `[${model}] 応答テキストが空でした`;
         console.warn(`Model ${model} returned empty response`);
         continue;
       }
 
-      const cleanJson = rawOut.replace(/```json/g, '').replace(/```/g, '').trim();
-      const parsed = JSON.parse(cleanJson);
-      if (parsed.image_translation) parsed.image_translation = formatWithDateDividers(parsed.image_translation);
-      if (parsed.text_translation) parsed.text_translation = formatWithDateDividers(parsed.text_translation);
-      if (parsed.summary) parsed.summary = formatWithDateDividers(parsed.summary);
-      return parsed;
+      const cleanJson = rawOut.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '').trim();
+      let parsed = null;
+      try {
+        parsed = JSON.parse(cleanJson);
+      } catch(e) {
+        const match = cleanJson.match(/(\{[\s\S]*\})/);
+        if (match) {
+          try { parsed = JSON.parse(match[1]); } catch(err2) {}
+        }
+      }
+
+      if (parsed) {
+        if (parsed.image_translation) parsed.image_translation = formatWithDateDividers(parsed.image_translation);
+        if (parsed.text_translation) parsed.text_translation = formatWithDateDividers(parsed.text_translation);
+        if (parsed.summary) parsed.summary = formatWithDateDividers(parsed.summary);
+        return parsed;
+      }
     } catch (err) {
+      lastGeminiErrorDetails = `[${model}] ${err.message}`;
       console.warn(`Gemini Direct Error (${model}):`, err);
     }
   }
