@@ -672,25 +672,51 @@ function updateAiEngineStatusBanner() {
   const apiKey = (settings.gemini_api_key || '').trim();
   if (apiKey) {
     banner.innerHTML = `
-      <div class="p-2.5 rounded-2xl bg-purple-50 border border-purple-200 text-purple-900 text-xs flex items-center justify-between shadow-xs">
+      <div class="p-3 rounded-2xl bg-purple-50 border border-purple-200 text-purple-900 text-xs flex items-center justify-between shadow-xs">
         <div class="flex items-center gap-1.5 font-bold">
           <span>✨ Gemini AI 高精度モード:</span>
           <span class="text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full text-[10px] font-black">有効</span>
         </div>
-        <button type="button" onclick="openSettingsModal()" class="text-purple-700 hover:text-purple-900 underline text-[11px] font-bold">キー設定</button>
+        <button type="button" onclick="openSettingsModal()" class="text-purple-700 hover:text-purple-900 underline text-[11px] font-bold">キー設定変更</button>
       </div>
     `;
   } else {
     banner.innerHTML = `
-      <div class="p-3 rounded-2xl bg-amber-50 border border-amber-300 text-amber-950 text-xs space-y-1 shadow-xs">
-        <div class="flex items-center justify-between font-bold">
-          <span class="flex items-center gap-1">⚠️ <span>簡易読取モード（OCR）</span></span>
-          <button type="button" onclick="openSettingsModal()" class="px-2.5 py-1 rounded-xl bg-amber-200 hover:bg-amber-300 text-amber-950 text-[11px] font-black transition">Geminiキーを設定</button>
+      <div class="p-3.5 rounded-2xl bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-300 text-amber-950 space-y-2 shadow-xs">
+        <div class="flex items-center justify-between">
+          <div class="font-bold text-xs flex items-center gap-1">
+            <span>✨ Gemini AI 高精度モードを有効にする</span>
+          </div>
+          <span class="text-[10px] bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full font-bold">無料・推奨</span>
         </div>
-        <p class="text-[10px] text-amber-800 leading-relaxed font-medium">※プリント写真の表やスケジュールをGeminiが直接綺麗に翻訳するには、⚙️設定から無料のGemini APIキーを入力してください。</p>
+        <p class="text-[11px] text-stone-700 leading-relaxed">
+          写真内の表やスケジュールをGeminiが直接綺麗に翻訳するには、Googleの無料APIキーを入力してください。
+        </p>
+        <div class="flex gap-1.5 pt-0.5">
+          <input type="password" id="inlineApiKeyInput" placeholder="AIzaSy... (APIキーを貼り付け)" class="flex-1 p-2 bg-white border border-amber-300 rounded-xl font-mono text-[11px] text-stone-800 focus:outline-none shadow-inner">
+          <button type="button" onclick="saveInlineApiKey()" class="px-3.5 py-2 bg-stone-900 hover:bg-stone-800 active:scale-95 text-white rounded-xl text-xs font-bold transition shadow-xs flex-shrink-0">保存</button>
+        </div>
+        <div class="text-[10px] text-stone-500 flex items-center justify-between pt-0.5">
+          <span>※キーをお持ちでない方は</span>
+          <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-blue-600 underline font-bold">Google AI Studioで無料取得 ↗</a>
+        </div>
       </div>
     `;
   }
+}
+
+function saveInlineApiKey() {
+  const input = document.getElementById('inlineApiKeyInput');
+  const key = input ? input.value.trim() : '';
+  if (!key) {
+    alert('APIキーを入力してください');
+    return;
+  }
+  const settings = DB.getSettings();
+  settings.gemini_api_key = key;
+  DB.saveSettings(settings);
+  updateAiEngineStatusBanner();
+  alert('✨ Gemini APIキーを保存しました！高精度モードが有効になりました。');
 }
 
 function renderNewTags() {
