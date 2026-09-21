@@ -534,7 +534,7 @@ function renderDetailPage(postId) {
       <h4 class="text-xs font-bold text-amber-950 flex items-center gap-1">
         <span>📱 日本語訳 ＆ 連絡事項</span>
       </h4>
-      <div class="text-xs leading-relaxed text-stone-900 bg-white p-3 rounded-xl border border-amber-200/60 whitespace-pre-wrap font-bold shadow-xs">${escapeHtml(transText)}</div>
+      <div class="text-xs leading-relaxed text-stone-850 bg-white p-3.5 rounded-xl border border-amber-200/60 whitespace-pre-wrap font-medium shadow-xs">${escapeHtml(transText)}</div>
       ${rawText ? `
         <details class="text-[11px] pt-1">
           <summary class="font-bold text-amber-900 cursor-pointer hover:text-amber-950">英語原文（メール本文・OCR）を表示</summary>
@@ -856,7 +856,7 @@ async function callGeminiDirect(apiKey, b64Image, textContent) {
           }
         });
         parts.push({
-          text: "この学校プリント画像を読み取り、画像内の英文を日本語に翻訳した上で、指定のJSON形式のみで出力してください。image_translation に画像内の日本語全訳を、image_raw に読み取った英文を入れてください。メッセージテキストがない場合は text_translation と text_raw を null にしてください。"
+          text: "この学校・園のおたより・プリント画像を正確に読み取り、指定のJSON形式のみで出力してください。特に表（スケジュール、日付ごとの活動、持ち物リスト等）が含まれている場合は、各セッションや日付ごとに見出し・プロジェクト名・必要な材料（個数や仕様を含む）を箇条書きで綺麗に構造化して image_translation に入れてください。image_raw には読み取った英語原文を入れてください。"
         });
       }
 
@@ -865,21 +865,56 @@ async function callGeminiDirect(apiKey, b64Image, textContent) {
           text: `【英語メッセージ本文】:
 ${textContent}
 
-この文章を日本語に全訳し、text_translation に入れてください。`
+この文章を自然で分かりやすい日本語に全訳し、text_translation に入れてください。`
         });
       }
 
       const systemPrompt = `
-あなたは学校・幼稚園・インターナショナルスクールの英語のおたよりを自然な日本語に翻訳・構造化する専門AIです。
+あなたは学校・幼稚園・インターナショナルスクール等の英語のおたより（Newsletters, Schedule Tables, Event Notices, Handouts）を、保護者向けに極めて分かりやすく丁寧な日本語に翻訳・整理・構造化する専門AIです。
 必ず以下のJSON形式のみを出力してください（Markdownコードブロック不要、純粋なJSON）。
 
-【重要指示】
-- 本文や画像内に明確な日付が書かれていない場合は、date は必ず null にしてください（勝手に今日の日付を入れないでください）。
-- 提出締切がない場合は、deadline と deadline_description は null にしてください。
-- 持ち物が書かれていない場合は items は空配列 [] にしてください。
+【最重要・翻訳とフォーマットのルール】
+1. 表形式（スケジュール、日時ごとの活動、持ち物・材料一覧等）の翻訳:
+   - 表の内容を単に要約したり平坦な文章に縮小せず、保護者がひと目で分かるように「セッション・日付ごとの見出し」「活動・プロジェクト名」「必要な材料・持ち物（個数・サイズ・色などの詳細を含む）」を箇条書きで美しく構造化して翻訳してください。
+   - フォーマット例:
+━━━━━━━━━━━━━━━━━━━━
+【クラフトピア (CRAFTOPIA)】
+木曜日: 午後2:00 - 3:20
+
+【セッション1: 8月27日】
+・プロジェクト: ペン立て
+・必要な材料:
+  - アイスの棒（30本、何色でも可）
+  - 空のポテトチップスの紙筒（小さい円柱形、直径7cm以上）
+  - 接着剤
+  - 紐または細いリボン（1メートル）
+
+【セッション2: 9月3日】
+・プロジェクト: ジェスモナイトのコースター
+・必要な材料:
+  - 丸いシリコンモールド（直径: 10〜14 cm）
+  - 透明なプラスチックカップ（大）
+  - アイスの棒（1本）
+  - エプロン
+━━━━━━━━━━━━━━━━━━━━
+
+2. 持ち物・材料リスト (items):
+   - おたより全体で必要とされる持ち物・材料（各セッションで必要なアイテムも含む）を分かりやすく日本語配列にして抽出してください。
+   - 例: ["アイスの棒 (30本)", "ポテトチップスの紙筒", "接着剤", "シリコンモールド", "エプロン", "木工用ボンド", "自然乾燥粘土 (300g)", "トイレットペーパーの芯 (20個)"]
+
+3. 日付 (date) と 時間 (time_start):
+   - 単一のイベント・期日の場合はその日付 (YYYY-MM-DD)。
+   - 複数日程のスケジュール表の場合は、第1回目のセッション日付や直近の開始日 (YYYY-MM-DD)。本文や画像内に明確な日付がない場合のみ null。
+   - 開始時間（例: "2:00 PM" -> "14:00"）を HH:MM 形式で抽出。ない場合は null。
+
+4. タイトル (title / title_en):
+   - おたよりの主題やイベント名を的確に表す自然な日本語タイトル（例: 「クラフトピア（木曜クラフト教室）の予定と持ち物一覧」）。
+
+5. 提出締切 (deadline / deadline_description):
+   - 提出物や返送の締切日がある場合のみ設定。ない場合は null。
 
 {
-  "title": "日本語の分かりやすいタイトル（例: 第1四半期のお知らせ（UOI評価タスク））",
+  "title": "日本語の分かりやすいタイトル",
   "title_en": "Original English Title",
   "date": "YYYY-MM-DD (明確な日付がある場合のみ。不明なら null)",
   "time_start": "HH:MM (開始時刻。ない場合は null)",
@@ -887,12 +922,12 @@ ${textContent}
   "items": ["持ち物1", "持ち物2"],
   "deadline": "YYYY-MM-DD (提出締切日。ない場合は null)",
   "deadline_description": "提出物の内容（ない場合は null)",
-  "summary": "おたより全体の要約（自然で丁寧な日本語）",
+  "summary": "おたより全体の概要と重要ポイントの要約（丁寧な日本語）",
   "text_translation": "メッセージ本文の丁寧な日本語全訳（メッセージがない場合はnull）",
   "text_raw": "メッセージ英語原文（ない場合はnull）",
-  "image_translation": "画像内英文の丁寧な日本語全訳（画像がない場合はnull）",
-  "image_raw": "画像内英文OCR（画像がない場合はnull）",
-  "tags": ["英語・UOI", "学校行事"]
+  "image_translation": "画像内英文の丁寧な日本語全訳・構造化テキスト（表やリストはセッション・項目ごとに見やすく箇条書き）（画像がない場合はnull）",
+  "image_raw": "画像内英文OCR・英語原文（画像がない場合はnull）",
+  "tags": ["英語・UOI", "アート", "持ち物あり"]
 }
 `;
       parts.unshift({ text: systemPrompt });
