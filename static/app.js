@@ -775,11 +775,15 @@ async function executeAIAnalyze() {
       try {
         draft = await callGeminiDirect(apiKey, newUploadedImageUrl, textVal);
         if (draft) {
-          console.log('Gemini API Direct analysis succeeded!');
+          console.log('✨ Gemini AI Direct analysis succeeded!');
+        } else {
+          console.warn('Gemini direct call returned null (check API Key in settings), falling back...');
         }
       } catch(geminiErr) {
         console.warn('Gemini direct call failed, falling back:', geminiErr);
       }
+    } else {
+      console.log('No Gemini API Key set in settings. Using Client OCR translation fallback.');
     }
 
     // 2. クライアント側フォールバック翻訳（Google Translate + MyMemory + 高速OCR + 内蔵辞書）
@@ -845,27 +849,39 @@ function formatWithDateDividers(text) {
   const lines = text.split('\n');
   const result = [];
   
-  // セッション、日付、回数などのヘッダーを検知
-  const sessionRegex = /^(?:[■📅【\s]*)(?:セッション\s*[0-9０-９]+|session\s*[0-9]+|第\s*[0-9０-９]+\s*回|(?:1[0-2]|[1-9])\s*月\s*(?:[1-3][0-9]|[1-9])\s*日|(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s*\d{1,2})/i;
+  // セッションヘッダー正規表現
+  const sessionRegex = /^(?:[■📅【\s]*)(?:セッション\s*[0-9０-９]+|session\s*[0-9]+|第\s*[0-9０-９]+\s*回)/i;
+  // 日付単独ヘッダー正規表現
+  const dateHeaderRegex = /^(?:[■📅【\s]*)(?:(?:1[0-2]|[1-9])\s*月\s*(?:[1-3][0-9]|[1-9])\s*日|(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s*\d{1,2})/i;
   
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     const trimmed = line.trim();
+    if (!trimmed) {
+      result.push(line);
+      continue;
+    }
     
-    // この行がセッション・日付ヘッダーの場合
-    if (sessionRegex.test(trimmed)) {
-      // 直前の非空行にすでに区切り線があるか確認
-      let hasPrevDivider = false;
-      for (let prevIdx = result.length - 1; prevIdx >= 0; prevIdx--) {
-        const prevLine = result[prevIdx].trim();
-        if (!prevLine) continue;
-        if (prevLine.startsWith('===') || prevLine.startsWith('━━━') || prevLine.startsWith('---')) {
-          hasPrevDivider = true;
-        }
-        break;
+    const isSession = sessionRegex.test(trimmed);
+    const isDate = dateHeaderRegex.test(trimmed);
+    
+    // 直前の非空行がセッションヘッダーだったか確認（セッション直後の日付行に二重で仕切りが入るのを防ぐ）
+    let prevWasSessionHeader = false;
+    let hasPrevDivider = false;
+    for (let prevIdx = result.length - 1; prevIdx >= 0; prevIdx--) {
+      const prevLine = result[prevIdx].trim();
+      if (!prevLine) continue;
+      if (prevLine.startsWith('===') || prevLine.startsWith('━━━') || prevLine.startsWith('---')) {
+        hasPrevDivider = true;
       }
-      
-      // 直前に区切り線がなく、かつすでに何らかの内容がある場合は区切りを挿入
+      if (sessionRegex.test(prevLine)) {
+        prevWasSessionHeader = true;
+      }
+      break;
+    }
+    
+    // セッション開始行、またはセッション直後ではない単独日付行の場合に仕切りを挿入
+    if (isSession || (isDate && !prevWasSessionHeader)) {
       if (!hasPrevDivider && result.length > 0) {
         result.push("==============================");
       }
@@ -877,36 +893,13 @@ function formatWithDateDividers(text) {
   return result.join('\n');
 }
 
-// ① Gemini API 直接呼出 (Gemini 2.0 Flash / 1.5 Flash)
+// ① Gemini API 直接呼出 (Gemini 2.0 Flash / 1.5 Flash / 1.5 Pro)
 async function callGeminiDirect(apiKey, b64Image, textContent) {
-  const models = ['gemini-2.0-flash', 'gemini-1.5-flash'];
+  const models = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'];
   
   for (const model of models) {
     try {
       const parts = [];
-
-      if (b64Image) {
-        const mimeType = b64Image.startsWith('data:image/png') ? 'image/png' : 'image/jpeg';
-        const rawB64 = b64Image.includes(',') ? b64Image.split(',')[1] : b64Image;
-        parts.push({
-          inline_data: {
-            mime_type: mimeType,
-            data: rawB64
-          }
-        });
-        parts.push({
-          text: "この学校・園のおたより・プリント画像を正確に読み取り、指定のJSON形式のみで出力してください。特に表（スケジュール、日付ごとの活動、持ち物リスト等）が含まれている場合は、各セッションや日にちごとに「==============================」の明確な区切り線を入れて、見出し・日付・プロジェクト名・必要な材料（個数や仕様を含む）を箇条書きで分かりやすく構造化して image_translation に入れてください。image_raw には読み取った英語原文を入れてください。"
-        });
-      }
-
-      if (textContent) {
-        parts.push({
-          text: `【英語メッセージ本文】:
-${textContent}
-
-この文章を自然で分かりやすい日本語に全訳し、text_translation に入れてください。表や日程がある場合はセッションごとに「==============================」で区切ってください。`
-        });
-      }
 
       const systemPrompt = `
 あなたは学校・幼稚園・インターナショナルスクール等の英語のおたより（Newsletters, Schedule Tables, Event Notices, Handouts）を、保護者向けに極めて分かりやすく丁寧な日本語に翻訳・整理・構造化する専門AIです。
@@ -982,28 +975,56 @@ ${textContent}
   "tags": ["英語・UOI", "アート", "持ち物あり"]
 }
 `;
-      parts.unshift({ text: systemPrompt });
+      parts.push({ text: systemPrompt });
 
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      if (b64Image) {
+        const mimeType = b64Image.startsWith('data:image/png') ? 'image/png' : 'image/jpeg';
+        const rawB64 = b64Image.includes(',') ? b64Image.split(',')[1] : b64Image;
+        parts.push({
+          inlineData: {
+            mimeType: mimeType,
+            data: rawB64
+          }
+        });
+        parts.push({
+          text: "この学校・園のおたより・プリント画像を正確に読み取り、指定のJSON形式のみで出力してください。特に表（スケジュール、日付ごとの活動、持ち物リスト等）が含まれている場合は、各セッションや日にちごとに「==============================」の明確な区切り線を入れて、見出し・日付・プロジェクト名・必要な材料（個数や仕様を含む）を箇条書きで分かりやすく構造化して image_translation に入れてください。image_raw には読み取った英語原文を入れてください。"
+        });
+      }
+
+      if (textContent) {
+        parts.push({
+          text: `【英語メッセージ本文】:
+${textContent}
+
+この文章を自然で分かりやすい日本語に全訳し、text_translation に入れてください。表や日程がある場合はセッションごとに「==============================」で区切ってください。`
+        });
+      }
+
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey.trim()}`;
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents: [{ parts: parts }],
           generationConfig: {
-            response_mime_type: "application/json"
+            responseMimeType: "application/json"
           }
         })
       });
 
       if (!res.ok) {
         const errJson = await res.json().catch(() => ({}));
-        console.warn(`Model ${model} error:`, errJson);
+        console.warn(`Model ${model} error (HTTP ${res.status}):`, errJson);
         continue;
       }
 
       const data = await res.json();
-      const rawOut = data.candidates[0].content.parts[0].text;
+      const rawOut = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!rawOut) {
+        console.warn(`Model ${model} returned empty response`);
+        continue;
+      }
+
       const cleanJson = rawOut.replace(/```json/g, '').replace(/```/g, '').trim();
       const parsed = JSON.parse(cleanJson);
       if (parsed.image_translation) parsed.image_translation = formatWithDateDividers(parsed.image_translation);
